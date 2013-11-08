@@ -1560,7 +1560,9 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 				return SUCCESS;
 
 			case TYPE_PAIR(IS_STRING, IS_STRING):
-				zendi_smart_strcmp(result, op1, op2);
+				Z_LVAL_P(result) = zend_binary_zval_strcmp(op1, op2);
+				ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_LVAL_P(result)));
+//				zendi_smart_strcmp(result, op1, op2);
 				return SUCCESS;
 
 			case TYPE_PAIR(IS_NULL, IS_STRING):
