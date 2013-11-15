@@ -1517,7 +1517,7 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 	while (1) {
 		switch (TYPE_PAIR(Z_TYPE_P(op1), Z_TYPE_P(op2))) {
 			case TYPE_PAIR(IS_LONG, IS_LONG):
-				ZVAL_LONG(result, Z_LVAL_P(op1)>Z_LVAL_P(op2)?1:(Z_LVAL_P(op1)<Z_LVAL_P(op2)?-1:0));
+				ZVAL_LONG(result, Z_LVAL_P(op1) > Z_LVAL_P(op2) ? 1 : (Z_LVAL_P(op1) < Z_LVAL_P(op2) ? -1 : 0));
 				return SUCCESS;
 
 			case TYPE_PAIR(IS_DOUBLE, IS_LONG):
@@ -1562,7 +1562,6 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 			case TYPE_PAIR(IS_STRING, IS_STRING):
 				Z_LVAL_P(result) = zend_binary_zval_strcmp(op1, op2);
 				ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_LVAL_P(result)));
-//				zendi_smart_strcmp(result, op1, op2);
 				return SUCCESS;
 
 			case TYPE_PAIR(IS_NULL, IS_STRING):
@@ -1752,6 +1751,10 @@ ZEND_API int is_not_identical_function(zval *result, zval *op1, zval *op2 TSRMLS
 
 ZEND_API int is_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
 {
+	if (Z_TYPE_P(op1) == Z_TYPE_P(op2)) {
+		return is_identical_function(result, op1, op2 TSRMLS_CC);
+        }
+
 	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
 		return FAILURE;
 	}
@@ -1762,6 +1765,10 @@ ZEND_API int is_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* 
 
 ZEND_API int is_not_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
 {
+        if (Z_TYPE_P(op1) == Z_TYPE_P(op2)) {
+                return is_not_identical_function(result, op1, op2 TSRMLS_CC);
+        }
+
 	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
 		return FAILURE;
 	}
