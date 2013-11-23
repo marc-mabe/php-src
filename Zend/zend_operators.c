@@ -1516,6 +1516,7 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 
 	while (1) {
 		switch (TYPE_PAIR(Z_TYPE_P(op1), Z_TYPE_P(op2))) {
+			// number with number
 			case TYPE_PAIR(IS_LONG, IS_LONG):
 				ZVAL_LONG(result, Z_LVAL_P(op1) > Z_LVAL_P(op2) ? 1 : (Z_LVAL_P(op1) < Z_LVAL_P(op2) ? -1 : 0));
 				return SUCCESS;
@@ -1539,10 +1540,25 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 				}
 				return SUCCESS;
 
-			case TYPE_PAIR(IS_ARRAY, IS_ARRAY):
-				zend_compare_arrays(result, op1, op2 TSRMLS_CC);
+			// NULL with number
+			case TYPE_PAIR(IS_NULL, IS_LONG):
+				ZVAL_LONG(result, 0 > Z_LVAL_P(op2) ? 1 : (0 < Z_LVAL_P(op2) ? -1 : 0));
 				return SUCCESS;
 
+			case TYPE_PAIR(IS_NULL, IS_DOUBLE):
+				ZVAL_LONG(result, 0 - Z_DVAL_P(op2));
+				ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
+				return SUCCESS;
+
+			case TYPE_PAIR(IS_LONG, IS_NULL):
+				ZVAL_LONG(result, Z_LVAL_P(op1) > 0 ? 1 : (Z_LVAL_P(op1) ? -1 : 0));
+				return SUCCESS;
+
+			case TYPE_PAIR(IS_DOUBLE, IS_NULL):
+				ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(op1)));
+				return SUCCESS;
+
+			// NULL with boolean
 			case TYPE_PAIR(IS_NULL, IS_NULL):
 				ZVAL_LONG(result, 0);
 				return SUCCESS;
@@ -1557,6 +1573,10 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 
 			case TYPE_PAIR(IS_BOOL, IS_BOOL):
 				ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_LVAL_P(op1) - Z_LVAL_P(op2)));
+				return SUCCESS;
+
+			case TYPE_PAIR(IS_ARRAY, IS_ARRAY):
+				zend_compare_arrays(result, op1, op2 TSRMLS_CC);
 				return SUCCESS;
 
 			case TYPE_PAIR(IS_STRING, IS_STRING):
