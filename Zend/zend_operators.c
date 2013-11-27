@@ -1818,7 +1818,7 @@ ZEND_API int is_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* 
 {
 	if (Z_TYPE_P(op1) == Z_TYPE_P(op2)) {
 		return is_identical_function(result, op1, op2 TSRMLS_CC);
-        }
+	}
 
 	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
 		return FAILURE;
