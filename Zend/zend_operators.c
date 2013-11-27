@@ -1607,7 +1607,7 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 				return FAILURE;
 
 			case TYPE_PAIR(IS_STRING, IS_DOUBLE):
-				switch (is_numeric_string(Z_STRVAL_P(op1), Z_STRLEN_P(op1), NULL, &dval, 0)) {
+				switch (is_numeric_string(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, &dval, 0)) {
 					case IS_LONG:
 						Z_DVAL_P(result) = (double)lval - Z_DVAL_P(op2);
 						ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
