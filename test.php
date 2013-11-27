@@ -35,10 +35,25 @@ function cmpGreaterThen($op1, $op2, $expectedResult) {
     printRs('>', $op1, $op2, $expectedResult, $rs, $t);
 }
 
+function cmpLowerThen($op1, $op2, $expectedResult) {
+    global $t0;
+
+    $start = microtime(true);
+    for ($i = 0; $i < 1000000; ++$i) {
+        $rs = ($op1 < $op2);
+    }
+    $end = microtime(true);
+
+    $t   = ($end - $start);
+    $t0 += $t;
+
+    printRs('<', $op1, $op2, $expectedResult, $rs, $t);
+}
+
 function printRs($op, $op1, $op2, $expectedResult, $result, $time) {
     echo ($result === $expectedResult) ? 'OK   ' : 'FAIL ';
     echo str_pad(sprintf(
-        "(%s %s %s)",
+        "%s %s %s",
         fmtVar($op1, true),
         $op,
         fmtVar($op2, true)
@@ -55,6 +70,10 @@ function fmtVar($var) {
             ), array(
                 '\\\\', '\0', '\t', '\n', '\r'
             ), var_export($var, true));
+        case 'double':
+            return 'float(' . var_export($var, true) . ')';
+        case 'int':
+            return 'int(' . var_export($var, true) . ')';
         default:
             return var_export($var, true);
     }
@@ -71,6 +90,13 @@ cmpGreaterThen('tesu', 'test', true);
 cmpGreaterThen('tess', 'test', false);
 cmpGreaterThen('a', 'Z', true);
 
+cmpLowerThen('test', 'test', false);
+cmpLowerThen('teste', 'test', false);
+cmpLowerThen('s', 'test', true);
+cmpLowerThen('tesu', 'test', false);
+cmpLowerThen('tess', 'test', true);
+cmpLowerThen('Z', 'a', true);
+
 echo "\nString (non-numeric) to numeric:\n";
 cmpEqual('string', '0', false);
 cmpEqual('string', 0, false);
@@ -79,6 +105,13 @@ cmpEqual('string', 0.1, false);
 
 cmpGreaterThen('str', '123', true);
 cmpGreaterThen('STR', '123', true);
+cmpGreaterThen(':', '9', true);
+cmpGreaterThen('/', '0', false);
+
+cmpLowerThen('str', '123', false);
+cmpLowerThen('STR', '123', false);
+cmpLowerThen(':', '9', false);
+cmpLowerThen('/', '0', true);
 
 echo "\nString (eventual numeric) to numeric:\n";
 cmpEqual('1string', '1', false);
@@ -118,6 +151,7 @@ cmpEqual(-0, +0.0, true);
 
 echo "\nFloat to numeric:\n";
 cmpEqual(1.1, 1.1, true);
+cmpEqual(1.0, '1', true);
 cmpEqual(1.1, '1.1', true);
 cmpEqual(1.1, '1.1000000000000001', true);
 cmpEqual(1.1, 2, false);

@@ -1511,12 +1511,14 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 {
 	int ret;
 	int converted = 0;
+	long lval = 0;
+	double dval = 0;
 	zval op1_copy, op2_copy;
 	zval *op_free;
 
 	while (1) {
 		switch (TYPE_PAIR(Z_TYPE_P(op1), Z_TYPE_P(op2))) {
-			// number with number
+			// number and number
 			case TYPE_PAIR(IS_LONG, IS_LONG):
 				ZVAL_LONG(result, Z_LVAL_P(op1) > Z_LVAL_P(op2) ? 1 : (Z_LVAL_P(op1) < Z_LVAL_P(op2) ? -1 : 0));
 				return SUCCESS;
@@ -1540,7 +1542,7 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 				}
 				return SUCCESS;
 
-			// NULL with number
+			// null and number
 			case TYPE_PAIR(IS_NULL, IS_LONG):
 				ZVAL_LONG(result, 0 > Z_LVAL_P(op2) ? 1 : (0 < Z_LVAL_P(op2) ? -1 : 0));
 				return SUCCESS;
@@ -1558,7 +1560,7 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 				ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(op1)));
 				return SUCCESS;
 
-			// NULL with boolean
+			// null and boolean
 			case TYPE_PAIR(IS_NULL, IS_NULL):
 				ZVAL_LONG(result, 0);
 				return SUCCESS;
@@ -1575,10 +1577,7 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 				ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_LVAL_P(op1) - Z_LVAL_P(op2)));
 				return SUCCESS;
 
-			case TYPE_PAIR(IS_ARRAY, IS_ARRAY):
-				zend_compare_arrays(result, op1, op2 TSRMLS_CC);
-				return SUCCESS;
-
+			// string and null
 			case TYPE_PAIR(IS_STRING, IS_STRING):
 				Z_LVAL_P(result) = zend_binary_zval_strcmp(op1, op2);
 				ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_LVAL_P(result)));
@@ -1590,6 +1589,52 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 
 			case TYPE_PAIR(IS_STRING, IS_NULL):
 				ZVAL_LONG(result, zend_binary_strcmp(Z_STRVAL_P(op1), Z_STRLEN_P(op1), "", 0));
+				return SUCCESS;
+
+			// string and number
+			case TYPE_PAIR(IS_STRING, IS_LONG):
+				if (is_numeric_string(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, NULL, 0) == IS_LONG) {
+					ZVAL_LONG(result, lval > Z_LVAL_P(op2) ? 1 : (lval < Z_LVAL_P(op2) ? -1 : 0));
+					return SUCCESS;
+				}
+				return FAILURE;
+
+			case TYPE_PAIR(IS_LONG, IS_STRING):
+				if (is_numeric_string(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, NULL, 0) == IS_LONG) {
+					ZVAL_LONG(result, Z_LVAL_P(op1) > lval ? 1 : (Z_LVAL_P(op1) < lval ? -1 : 0));
+					return SUCCESS;
+				}
+				return FAILURE;
+
+			case TYPE_PAIR(IS_STRING, IS_DOUBLE):
+				switch (is_numeric_string(Z_STRVAL_P(op1), Z_STRLEN_P(op1), NULL, &dval, 0)) {
+					case IS_LONG:
+						Z_DVAL_P(result) = (double)lval - Z_DVAL_P(op2);
+						ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
+						return SUCCESS;
+					case IS_DOUBLE:
+						Z_DVAL_P(result) = dval - Z_DVAL_P(op2);
+						ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
+						return SUCCESS;
+				}
+				return FAILURE;
+
+			case TYPE_PAIR(IS_DOUBLE, IS_STRING):
+				switch (is_numeric_string(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, &dval, 0)) {
+					case IS_LONG:
+						Z_DVAL_P(result) = Z_DVAL_P(op1) - (double)lval;
+						ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
+						return SUCCESS;
+					case IS_DOUBLE:
+						Z_DVAL_P(result) = Z_DVAL_P(op1) - dval;
+						ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
+						return SUCCESS;
+				}
+				return FAILURE;
+
+			// TODO: review
+			case TYPE_PAIR(IS_ARRAY, IS_ARRAY):
+				zend_compare_arrays(result, op1, op2 TSRMLS_CC);
 				return SUCCESS;
 
 			case TYPE_PAIR(IS_OBJECT, IS_NULL):
