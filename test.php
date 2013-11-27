@@ -71,9 +71,10 @@ function fmtVar($var) {
                 '\\\\', '\0', '\t', '\n', '\r'
             ), var_export($var, true));
         case 'double':
-            return 'float(' . var_export($var, true) . ')';
+            $ret = var_export($var, true);
+            return (strpos($ret, '.') === false) ? $ret . '.0' : $ret;
         case 'int':
-            return 'int(' . var_export($var, true) . ')';
+            return var_export($var, true);
         default:
             return var_export($var, true);
     }
