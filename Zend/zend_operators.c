@@ -1548,8 +1548,7 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 				return SUCCESS;
 
 			case TYPE_PAIR(IS_NULL, IS_DOUBLE):
-				ZVAL_LONG(result, 0 - Z_DVAL_P(op2));
-				ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
+				ZVAL_LONG(result, 0 > Z_DVAL_P(op2) ? 1 : (0 < Z_DVAL_P(op2) ? -1 : 0));
 				return SUCCESS;
 
 			case TYPE_PAIR(IS_LONG, IS_NULL):
@@ -1557,7 +1556,7 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 				return SUCCESS;
 
 			case TYPE_PAIR(IS_DOUBLE, IS_NULL):
-				ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(op1)));
+				ZVAL_LONG(result, Z_DVAL_P(op1) > 0 ? 1 : (Z_DVAL_P(op1) ? -1 : 0));
 				return SUCCESS;
 
 			// null and boolean
