@@ -16,6 +16,13 @@ function cmp($v1, $v2, $expect) {
     $ok = ($rs === ($expect === 0));
     result('==', $v1, $v2, ($expect === 0), $rs, $t2-$t1);
     
+    // not equal
+    $t1 = microtime(true);
+    for ($i=0; $i<$iterations; ++$i) $rs = ($v1 != $v2);
+    $t2 = microtime(true);
+    $ok = ($rs === ($expect !== 0));
+    result('!=', $v1, $v2, ($expect !== 0), $rs, $t2-$t1);
+
     // lower
     $t1 = microtime(true);
     for ($i=0; $i<$iterations; ++$i) $rs = ($v1 < $v2);
