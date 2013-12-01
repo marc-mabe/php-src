@@ -163,12 +163,12 @@ cmp(NULL, -1.0, 1);
 cmp(NULL, 1.0, -1);
 
 echo "\nResource comparison:\n";
-$rs1 = fopen(__FILE__, 'r');
-$rs2 = fopen(__FILE__, 'r');
+$rs1 = fopen(__FILE__, 'rb');
+$rs2 = fopen(__DIR__ . '/php.gif', 'rb');
 cmp($rs1, $rs1, 0);
+cmp($rs1, $rs2, false);
 cmp($rs1, (int)$rs1, false);
 cmp($rs1, (float)(int)$rs1, false);
-cmp($rs1, $rs2, false);
 
 
 printf("\nTotal \t\t\t\t\t\t\ttime = %f\n", $t0);
