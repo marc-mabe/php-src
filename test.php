@@ -13,42 +13,36 @@ function cmp($v1, $v2, $expect) {
     $t1 = microtime(true);
     for ($i=0; $i<$iterations; ++$i) $rs = ($v1 == $v2);
     $t2 = microtime(true);
-    $ok = ($rs === ($expect === 0));
     result('==', $v1, $v2, ($expect === 0), $rs, $t2-$t1);
     
     // not equal
     $t1 = microtime(true);
     for ($i=0; $i<$iterations; ++$i) $rs = ($v1 != $v2);
     $t2 = microtime(true);
-    $ok = ($rs === ($expect !== 0));
     result('!=', $v1, $v2, ($expect !== 0), $rs, $t2-$t1);
 
     // lower
     $t1 = microtime(true);
     for ($i=0; $i<$iterations; ++$i) $rs = ($v1 < $v2);
     $t2 = microtime(true);
-    $ok = ($rs === ($expect === -1));
     result('<', $v1, $v2, ($expect === -1), $rs, $t2-$t1);
 
     // lower or equal
     $t1 = microtime(true);
     for ($i=0; $i<$iterations; ++$i) $rs = ($v1 <= $v2);
     $t2 = microtime(true);
-    $ok = ($rs === ($expect === -1 || $expect === 0));
     result('<=', $v1, $v2, ($expect === -1 || $expect === 0), $rs, $t2-$t1);
 
     // greater
     $t1 = microtime(true);
     for ($i=0; $i<$iterations; ++$i) $rs = ($v1 > $v2);
     $t2 = microtime(true);
-    $ok = ($rs === ($expect === 1));
     result('>', $v1, $v2, ($expect === 1), $rs, $t2-$t1);
 
     // greater or equal
     $t1 = microtime(true);
     for ($i=0; $i<$iterations; ++$i) $rs = ($v1 >= $v2);
     $t2 = microtime(true);
-    $ok = ($rs === ($expect === 1 || $expect === 0));
     result('>=', $v1, $v2, ($expect === 1 || $expect === 0), $rs, $t2-$t1);
 }
 
