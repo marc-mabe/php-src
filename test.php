@@ -74,6 +74,8 @@ function fmt($var) {
             return (strpos($ret, '.') === false) ? $ret . '.0' : $ret;
         case 'int':
             return var_export($var, true);
+        case 'resource':
+            return print_r($var, true);
         default:
             return var_export($var, true);
     }
@@ -159,5 +161,14 @@ echo "\nNULL to float:\n";
 cmp(NULL, 0.0, 0);
 cmp(NULL, -1.0, 1);
 cmp(NULL, 1.0, -1);
+
+echo "\nResource comparison:\n";
+$rs1 = fopen(__FILE__, 'r');
+$rs2 = fopen(__FILE__, 'r');
+cmp($rs1, $rs1, 0);
+cmp($rs1, (int)$rs1, false);
+cmp($rs1, (float)(int)$rs1, false);
+cmp($rs1, $rs2, false);
+
 
 printf("\nTotal \t\t\t\t\t\t\ttime = %f\n", $t0);
