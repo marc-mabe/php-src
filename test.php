@@ -3,7 +3,7 @@
 error_reporting(-1);
 ini_set('display_errors', 1);
 
-$iterations = 10000;
+$iterations = 1;
 $t0 = 0;
 
 function cmp($v1, $v2, $expect) {
@@ -51,15 +51,18 @@ function result($op, $v1, $v2, $expectedRs, $rs, $time) {
 
     $t0 += $time;
 
-    echo ($expectedRs === $rs) ? 'OK   ' : 'FAIL ';
-    echo str_pad(sprintf(
-        "%s %s %s",
-        fmt($v1),
-        $op,
-        fmt($v2)
-    ), 44, ' ', STR_PAD_RIGHT);
-
-    printf("\t= %s\ttime = %f\n", fmt($rs), $time);
+    printf(
+        "%s\t%s \t= %s\ttime = %f\n",
+        ($expectedRs === $rs) ? 'OK' : 'FAIL',
+        str_pad(sprintf(
+            "%s %s %s",
+            fmt($v1),
+            $op,
+            fmt($v2)
+        ), 44, ' ', STR_PAD_RIGHT),
+        fmt($rs),
+        $time
+    );
 }
 
 function fmt($var) {
