@@ -1775,6 +1775,7 @@ ZEND_API int is_identical_function(zval *result, zval *op1, zval *op2 TSRMLS_DC)
 		Z_LVAL_P(result) = 0;
 		return SUCCESS;
 	}
+
 	switch (Z_TYPE_P(op1)) {
 		case IS_NULL:
 			Z_LVAL_P(result) = 1;
