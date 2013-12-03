@@ -1824,9 +1824,11 @@ ZEND_API int is_identical_function(zval *result, zval *op1, zval *op2 TSRMLS_DC)
 ZEND_API int is_not_identical_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
 {
 	if (is_identical_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
-		return FAILURE;
+		Z_LVAL_P(result) = 1;
+	} else {
+		Z_LVAL_P(result) = !Z_LVAL_P(result);
 	}
-	Z_LVAL_P(result) = !Z_LVAL_P(result);
+
 	return SUCCESS;
 }
 /* }}} */
@@ -1838,9 +1840,11 @@ ZEND_API int is_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* 
 	}
 
 	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
-		return FAILURE;
+		ZVAL_BOOL(result, 0);
+	} else {
+		ZVAL_BOOL(result, (Z_LVAL_P(result) == 0));
 	}
-	ZVAL_BOOL(result, (Z_LVAL_P(result) == 0));
+
 	return SUCCESS;
 }
 /* }}} */
@@ -1852,9 +1856,11 @@ ZEND_API int is_not_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC)
 	}
 
 	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
-		return FAILURE;
+		ZVAL_BOOL(result, 1);
+	} else {
+		ZVAL_BOOL(result, (Z_LVAL_P(result) != 0));
 	}
-	ZVAL_BOOL(result, (Z_LVAL_P(result) != 0));
+
 	return SUCCESS;
 }
 /* }}} */
@@ -1862,9 +1868,11 @@ ZEND_API int is_not_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC)
 ZEND_API int is_smaller_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
 {
 	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
-		return FAILURE;
+		ZVAL_BOOL(result, 0);
+	} else {
+		ZVAL_BOOL(result, (Z_LVAL_P(result) < 0));
 	}
-	ZVAL_BOOL(result, (Z_LVAL_P(result) < 0));
+
 	return SUCCESS;
 }
 /* }}} */
@@ -1872,9 +1880,11 @@ ZEND_API int is_smaller_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /
 ZEND_API int is_smaller_or_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
 {
 	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
-		return FAILURE;
+		ZVAL_BOOL(result, 0);
+	} else {
+		ZVAL_BOOL(result, (Z_LVAL_P(result) <= 0));
 	}
-	ZVAL_BOOL(result, (Z_LVAL_P(result) <= 0));
+
 	return SUCCESS;
 }
 /* }}} */

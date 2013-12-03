@@ -889,7 +889,10 @@ static zend_always_inline int fast_equal_function(zval *result, zval *op1, zval 
 			return Z_DVAL_P(op1) == ((double)Z_LVAL_P(op2));
 		}
 	}
-	compare_function(result, op1, op2 TSRMLS_CC);
+	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
+		Z_LVAL_P(result) = 0;
+		return 0;
+	}
 	return Z_LVAL_P(result) == 0;
 }
 
@@ -908,7 +911,10 @@ static zend_always_inline int fast_not_equal_function(zval *result, zval *op1, z
 			return Z_DVAL_P(op1) != ((double)Z_LVAL_P(op2));
 		}
 	}
-	compare_function(result, op1, op2 TSRMLS_CC);
+	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
+		Z_LVAL_P(result) = 1;
+		return 1;
+	}
 	return Z_LVAL_P(result) != 0;
 }
 
@@ -927,7 +933,10 @@ static zend_always_inline int fast_is_smaller_function(zval *result, zval *op1, 
 			return Z_DVAL_P(op1) < ((double)Z_LVAL_P(op2));
 		}
 	}
-	compare_function(result, op1, op2 TSRMLS_CC);
+	if (compare_function(result, op1, op2 TSRMLS_CC)) {
+		Z_LVAL_P(result) = 0;
+		return 0;
+	}
 	return Z_LVAL_P(result) < 0;
 }
 
@@ -946,7 +955,10 @@ static zend_always_inline int fast_is_smaller_or_equal_function(zval *result, zv
 			return Z_DVAL_P(op1) <= ((double)Z_LVAL_P(op2));
 		}
 	}
-	compare_function(result, op1, op2 TSRMLS_CC);
+	if (compare_function(result, op1, op2 TSRMLS_CC)) {
+		Z_LVAL_P(result) = 0;
+		return 0;
+	}
 	return Z_LVAL_P(result) <= 0;
 }
 
