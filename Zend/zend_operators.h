@@ -876,9 +876,9 @@ static zend_always_inline int fast_mod_function(zval *result, zval *op1, zval *o
 
 static zend_always_inline int fast_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC)
 {
-	if (Z_TYPE_P(op1) == Z_TYPE_P(op2)) {
+	if (EXPECTED(Z_TYPE_P(op1) == Z_TYPE_P(op2))) {
 		is_identical_function(result, op1, op2 TSRMLS_CC);
-		return Z_LVAL_P(result) == 0;
+		return Z_LVAL_P(result) == 1;
 	}
 
 	if (EXPECTED(Z_TYPE_P(op1) == IS_LONG)) {
@@ -891,7 +891,7 @@ static zend_always_inline int fast_equal_function(zval *result, zval *op1, zval 
 		}
 	}
 
-	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
+	if (UNEXPECTED(compare_function(result, op1, op2 TSRMLS_CC) == FAILURE)) {
 		Z_LVAL_P(result) = 0;
 		return 0;
 	}
@@ -900,9 +900,9 @@ static zend_always_inline int fast_equal_function(zval *result, zval *op1, zval 
 
 static zend_always_inline int fast_not_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC)
 {
-	if (Z_TYPE_P(op1) == Z_TYPE_P(op2)) {
+	if (EXPECTED(Z_TYPE_P(op1) == Z_TYPE_P(op2))) {
 		is_identical_function(result, op1, op2 TSRMLS_CC);
-		return Z_LVAL_P(result) != 0;
+		return Z_LVAL_P(result) == 0;
 	}
 
 	if (EXPECTED(Z_TYPE_P(op1) == IS_LONG)) {
@@ -915,7 +915,7 @@ static zend_always_inline int fast_not_equal_function(zval *result, zval *op1, z
 		}
 	}
 
-	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
+	if (UNEXPECTED(compare_function(result, op1, op2 TSRMLS_CC) == FAILURE)) {
 		Z_LVAL_P(result) = 1;
 		return 1;
 	}
@@ -938,7 +938,7 @@ static zend_always_inline int fast_is_smaller_function(zval *result, zval *op1, 
 		}
 	}
 
-	if (compare_function(result, op1, op2 TSRMLS_CC)) {
+	if (UNEXPECTED(compare_function(result, op1, op2 TSRMLS_CC) == FAILURE)) {
 		Z_LVAL_P(result) = 0;
 		return 0;
 	}
@@ -961,7 +961,7 @@ static zend_always_inline int fast_is_smaller_or_equal_function(zval *result, zv
 		}
 	}
 
-	if (compare_function(result, op1, op2 TSRMLS_CC)) {
+	if (UNEXPECTED(compare_function(result, op1, op2 TSRMLS_CC) == FAILURE)) {
 		Z_LVAL_P(result) = 0;
 		return 0;
 	}
