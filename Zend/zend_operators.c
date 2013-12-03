@@ -1596,8 +1596,6 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 					ZVAL_LONG(result, lval > Z_LVAL_P(op2) ? 1 : (lval < Z_LVAL_P(op2) ? -1 : 0));
 					return SUCCESS;
 				}
-
-				ZVAL_LONG(result, 0);
 				return FAILURE;
 
 			case TYPE_PAIR(IS_LONG, IS_STRING):
@@ -1605,8 +1603,6 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 					ZVAL_LONG(result, Z_LVAL_P(op1) > lval ? 1 : (Z_LVAL_P(op1) < lval ? -1 : 0));
 					return SUCCESS;
 				}
-
-				ZVAL_LONG(result, 0);
 				return FAILURE;
 
 			case TYPE_PAIR(IS_STRING, IS_DOUBLE):
@@ -1620,8 +1616,6 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 						ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
 						return SUCCESS;
 				}
-
-				ZVAL_LONG(result, 0);
 				return FAILURE;
 
 			case TYPE_PAIR(IS_DOUBLE, IS_STRING):
@@ -1635,8 +1629,6 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 						ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
 						return SUCCESS;
 				}
-
-				ZVAL_LONG(result, 0);
 				return FAILURE;
 
 			// resource comparison
@@ -1645,8 +1637,6 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 					ZVAL_LONG(result, 0);
 					return SUCCESS;
 				}
-
-				ZVAL_LONG(result, 0);
 				return FAILURE;
 
 			// TODO: review
@@ -1754,7 +1744,6 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 					ZVAL_LONG(result, -1);
 					return SUCCESS;
 				} else {
-					ZVAL_LONG(result, 0);
 					return FAILURE;
 				}
 		}
