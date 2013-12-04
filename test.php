@@ -1,9 +1,82 @@
 <?php
 
+echo <<<RULES
+Comparison operators:
+	identical        : ===, !==
+	equal            : ==, != or <>
+	smaller or equal : <, <=
+	greater or equal : >, >=
+
+Comparison rules:
+	- If a===b
+		- true: b===a, a==b, b==a, a<=b, b<=a, a>=b, b>=a
+		- false: a!==b, b!==a, a!=b, b!=a, a<b, b<a, a>b, b>a
+
+	- If a!==b
+		- true: b!==a
+		- false: a===b, b===a
+
+	- If a==b
+		- true: b==a, a<=b, b<=a, a>=b, b>=a
+		- false: a!=b, b!=a, a<b, b<a, a>b, b>a
+
+	- If a!=b
+		- true: b!=a, a!==b, b!==a
+		- false: a==b, b==a, a===b, b===a
+
+	- If a<b
+		- true: a<=b, b>a, b>=a, a!==b, b!==a, a!=b, b!=a
+		- false: a>b, a>=b, b<a, b<=a, a===b, b===a, a==b, b==a
+
+Comparing different types:
+	- null to bool          : handle null as the same as false
+	- null to int/float     : handle null as the same as 0
+	- null to string        : handle null as the same as an empty string
+	- null to array         : not comparable
+	- null to resource      : not comparable
+	- null to object        : not comparable - if not changed by object
+	- bool to int/float     : handle numbers of 0 as false and all other as true
+	- bool to string        : handle an empty string as false and all other as true
+	- bool to array         : handle an empty array as false and all other as true
+	- bool to resource      : handle resources as true
+	- bool to object        : handle objects as true - if not changed by object
+	- int/float to string   : convert string into int/float - not comparable on an invalid number or error
+	                          Format for a valid number in base 10: ^[+-]?[0-9]+$
+	                          Format for a valid number in base 16: ^0x[0-9a-fA-F]+$
+	                          Format for a valid float (TODO):      ^[+-]? ... $
+	- int/float to array	: not comparable
+	- int/float to resource	: not comparable
+	- int/float to object   : not comparable - if not changed by object
+	- string to array       : not comparable
+	- string to resource    : not comparable
+	- string to object      : not comparable - if not changed by object
+	- resource to object    : not comparable - if not changed by object
+
+Comparing booleans:
+	- TRUE === TRUE, FALSE === FALSE, TRUE !== FALSE, TRUE > FALSE
+
+Comparing floats:
+	- +0 and -0 will be identical
+	- +Inf will be the highest possible value
+	- -Inf will be the lowest possible value
+	- NaN is not comparable expect for NaN
+
+Comparing strings:
+	- string are identical if they are binary identical
+	- ordering will be done on byte sequence
+
+Comparing arrays:
+	- an array will be identical all elements (keys and values) are identical
+	- ordering will be done using the number of elements of the arrays
+
+
+
+RULES;
+
 error_reporting(-1);
 ini_set('display_errors', 1);
 
-$iterations = 1;
+$iterations = 1000000;
 $t0 = 0;
 
 function cmp($v1, $v2, $expect) {
@@ -165,6 +238,25 @@ echo "\nNULL to float:\n";
 cmp(NULL, 0.0, 0);
 cmp(NULL, -1.0, 1);
 cmp(NULL, 1.0, -1);
+
+echo "Array comparison:\n";
+cmp(array(), array(), 0);
+cmp(array(1), array(1), 0);
+cmp(array(1), array(2), -1);
+cmp(array(1), array(), 1);
+cmp(array(), null, 0);
+cmp(array(1), null, 1);
+cmp(array(), false, 0);
+cmp(array(1), false, false);
+cmp(array(), true, false);
+cmp(array(1), true, 0);
+cmp(array(1,2), true, 0);
+cmp(array(), 0, 0);
+cmp(array(1), 0, false);
+cmp(array(), 1, false);
+cmp(array(1), 1, true);
+cmp(array(1), 2, -1);
+
 
 echo "\nResource comparison:\n";
 $rs1 = fopen(__FILE__, 'rb');
