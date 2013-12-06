@@ -1639,11 +1639,37 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 				}
 				return FAILURE;
 
-			// TODO: review
+			// array to array
 			case TYPE_PAIR(IS_ARRAY, IS_ARRAY):
 				zend_compare_arrays(result, op1, op2 TSRMLS_CC);
 				return SUCCESS;
 
+			// array to bool
+			case TYPE_PAIR(IS_ARRAY, IS_BOOL):
+				if (Z_LVAL_P(op2) == 0) {
+					if (zend_hash_num_elements(Z_ARRVAL_P(op1)) == 0) {
+						ZVAL_LONG(result, 0);
+						return SUCCESS;
+					}
+				} else if (zend_hash_num_elements(Z_ARRVAL_P(op1)) != 0) {
+					ZVAL_LONG(result, 0);
+					return SUCCESS;
+				}
+				return FAILURE;
+
+			case TYPE_PAIR(IS_BOOL, IS_ARRAY): 
+				if (Z_LVAL_P(op1) == 0) {
+					if (zend_hash_num_elements(Z_ARRVAL_P(op2)) == 0) {
+						ZVAL_LONG(result, 0);
+						return SUCCESS;
+					}
+				} else if (zend_hash_num_elements(Z_ARRVAL_P(op2)) != 0) {
+					ZVAL_LONG(result, 0);
+					return SUCCESS;
+				}
+				return FAILURE;
+
+			// TODO: review
 			case TYPE_PAIR(IS_OBJECT, IS_NULL):
 				ZVAL_LONG(result, 1);
 				return SUCCESS;

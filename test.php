@@ -37,9 +37,12 @@ Comparing different types:
 	- null to object        : not comparable - if not changed by object
 	- bool to int/float     : handle numbers of 0 as false and all other as true
 	- bool to string        : handle an empty string as false and all other as true
-	- bool to array         : handle an empty array as false and all other as true
-	- bool to resource      : handle resources as true
-	- bool to object        : handle objects as true - if not changed by object
+	- bool to array         : on equality: handle an empty array as false and all other as true
+	                          on ordering: not comparable
+	- bool to resource      : on equality: handle resources as true
+	                          on ordering: not comparable
+	- bool to object        : on equality: handle objects as true - if not changed by object
+	                          on ordering: not comparable
 	- int/float to string   : convert string into int/float - not comparable on an invalid number or error
 	                          Format for a valid number in base 10: ^[+-]?[0-9]+$
 	                          Format for a valid number in base 16: ^0x[0-9a-fA-F]+$
@@ -50,6 +53,8 @@ Comparing different types:
 	- string to array       : not comparable
 	- string to resource    : not comparable
 	- string to object      : not comparable - if not changed by object
+	- array to resource     : not comparable
+	- array to object       : not comparable
 	- resource to object    : not comparable - if not changed by object
 
 Comparing booleans:
@@ -76,7 +81,7 @@ RULES;
 error_reporting(-1);
 ini_set('display_errors', 1);
 
-$iterations = 1000000;
+$iterations = 100;
 $t0 = 0;
 
 function cmp($v1, $v2, $expect) {
