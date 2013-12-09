@@ -1510,13 +1510,13 @@ static inline void zend_free_obj_get_result(zval *op TSRMLS_DC) /* {{{ */
 ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
 {
 	int ret;
-	int converted = 0;
+//	int converted = 0;
 	long lval = 0;
 	double dval = 0;
-	zval op1_copy, op2_copy;
+//	zval op1_copy, op2_copy;
 	zval *op_free;
 
-	while (1) {
+//	while (1) {
 		switch (TYPE_PAIR(Z_TYPE_P(op1), Z_TYPE_P(op2))) {
 			// number and number
 			case TYPE_PAIR(IS_LONG, IS_LONG):
@@ -1644,6 +1644,15 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 				zend_compare_arrays(result, op1, op2 TSRMLS_CC);
 				return SUCCESS;
 
+			// ary and null
+			case TYPE_PAIR(IS_ARRAY, IS_NULL):
+				ZVAL_LONG(result, zend_hash_num_elements(Z_ARRVAL_P(op1)) == 0 ? 0 : 1);
+				return SUCCESS;
+
+			case TYPE_PAIR(IS_NULL, IS_ARRAY):
+				ZVAL_LONG(result, zend_hash_num_elements(Z_ARRVAL_P(op2)) == 0 ? 0 : -1);
+				return SUCCESS;
+
 			// array to bool
 			case TYPE_PAIR(IS_ARRAY, IS_BOOL):
 				if (Z_LVAL_P(op2) == 0) {
@@ -1690,22 +1699,14 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 				ZVAL_LONG(result, Z_DVAL_P(op1) > lval ? 1 : (Z_DVAL_P(op1) < lval ? -1 : 0));
 				return SUCCESS;
 
-			// TODO: review
-			case TYPE_PAIR(IS_OBJECT, IS_NULL):
-				ZVAL_LONG(result, 1);
-				return SUCCESS;
-
-			case TYPE_PAIR(IS_NULL, IS_OBJECT):
-				ZVAL_LONG(result, -1);
-				return SUCCESS;
-
+			// object comparison
+			// and all other are not comparable
 			default:
 				if (Z_TYPE_P(op1) == IS_OBJECT && Z_OBJ_HANDLER_P(op1, compare)) {
 					return Z_OBJ_HANDLER_P(op1, compare)(result, op1, op2 TSRMLS_CC);
 				} else if (Z_TYPE_P(op2) == IS_OBJECT && Z_OBJ_HANDLER_P(op2, compare)) {
 					return Z_OBJ_HANDLER_P(op2, compare)(result, op1, op2 TSRMLS_CC);
 				}
-
 				if (Z_TYPE_P(op1) == IS_OBJECT && Z_TYPE_P(op2) == IS_OBJECT) {
 					if (Z_OBJ_HANDLE_P(op1) == Z_OBJ_HANDLE_P(op2)) {
 						/* object handles are identical, apparently this is the same object */
@@ -1756,6 +1757,7 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 						return SUCCESS;
 					}
 				}
+/*
 				if (!converted) {
 					if (Z_TYPE_P(op1) == IS_NULL) {
 						zendi_convert_to_boolean(op2, op2_copy, result);
@@ -1793,8 +1795,10 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 				} else {
 					return FAILURE;
 				}
+*/
+				return FAILURE;
 		}
-	}
+//	}
 }
 /* }}} */
 
