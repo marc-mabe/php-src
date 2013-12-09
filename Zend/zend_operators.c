@@ -1509,296 +1509,254 @@ static inline void zend_free_obj_get_result(zval *op TSRMLS_DC) /* {{{ */
 
 ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
 {
-	int ret;
-//	int converted = 0;
 	long lval = 0;
 	double dval = 0;
-//	zval op1_copy, op2_copy;
-	zval *op_free;
 
-//	while (1) {
-		switch (TYPE_PAIR(Z_TYPE_P(op1), Z_TYPE_P(op2))) {
-			// number and number
-			case TYPE_PAIR(IS_LONG, IS_LONG):
-				ZVAL_LONG(result, Z_LVAL_P(op1) > Z_LVAL_P(op2) ? 1 : (Z_LVAL_P(op1) < Z_LVAL_P(op2) ? -1 : 0));
-				return SUCCESS;
+	switch (TYPE_PAIR(Z_TYPE_P(op1), Z_TYPE_P(op2))) {
+		case TYPE_PAIR(IS_NULL, IS_NULL):
+			ZVAL_LONG(result, 0);
+			return SUCCESS;
 
-			case TYPE_PAIR(IS_DOUBLE, IS_LONG):
-				Z_DVAL_P(result) = Z_DVAL_P(op1) - (double)Z_LVAL_P(op2);
+		case TYPE_PAIR(IS_BOOL, IS_BOOL):
+			ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_LVAL_P(op1) - Z_LVAL_P(op2)));
+			return SUCCESS;
+
+		case TYPE_PAIR(IS_LONG, IS_LONG):
+			ZVAL_LONG(result, Z_LVAL_P(op1) > Z_LVAL_P(op2) ? 1 : (Z_LVAL_P(op1) < Z_LVAL_P(op2) ? -1 : 0));
+			return SUCCESS;
+
+		case TYPE_PAIR(IS_DOUBLE, IS_DOUBLE):
+			if (Z_DVAL_P(op1) == Z_DVAL_P(op2)) {
+				ZVAL_LONG(result, 0);
+			} else {
+				Z_DVAL_P(result) = Z_DVAL_P(op1) - Z_DVAL_P(op2);
 				ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
-				return SUCCESS;
+			}
+			return SUCCESS;
 
-			case TYPE_PAIR(IS_LONG, IS_DOUBLE):
-				Z_DVAL_P(result) = (double)Z_LVAL_P(op1) - Z_DVAL_P(op2);
-				ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
-				return SUCCESS;
+		case TYPE_PAIR(IS_STRING, IS_STRING):
+			Z_LVAL_P(result) = zend_binary_zval_strcmp(op1, op2);
+			ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_LVAL_P(result)));
+			return SUCCESS;
 
-			case TYPE_PAIR(IS_DOUBLE, IS_DOUBLE):
-				if (Z_DVAL_P(op1) == Z_DVAL_P(op2)) {
-					ZVAL_LONG(result, 0);
-				} else {
-					Z_DVAL_P(result) = Z_DVAL_P(op1) - Z_DVAL_P(op2);
-					ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
-				}
-				return SUCCESS;
+		case TYPE_PAIR(IS_ARRAY, IS_ARRAY):
+			zend_compare_arrays(result, op1, op2 TSRMLS_CC);
+			return SUCCESS;
 
-			// null and number
-			case TYPE_PAIR(IS_NULL, IS_LONG):
-				ZVAL_LONG(result, 0 > Z_LVAL_P(op2) ? 1 : (0 < Z_LVAL_P(op2) ? -1 : 0));
-				return SUCCESS;
-
-			case TYPE_PAIR(IS_NULL, IS_DOUBLE):
-				ZVAL_LONG(result, 0 > Z_DVAL_P(op2) ? 1 : (0 < Z_DVAL_P(op2) ? -1 : 0));
-				return SUCCESS;
-
-			case TYPE_PAIR(IS_LONG, IS_NULL):
-				ZVAL_LONG(result, Z_LVAL_P(op1) > 0 ? 1 : (Z_LVAL_P(op1) ? -1 : 0));
-				return SUCCESS;
-
-			case TYPE_PAIR(IS_DOUBLE, IS_NULL):
-				ZVAL_LONG(result, Z_DVAL_P(op1) > 0 ? 1 : (Z_DVAL_P(op1) ? -1 : 0));
-				return SUCCESS;
-
-			// null and boolean
-			case TYPE_PAIR(IS_NULL, IS_NULL):
+		case TYPE_PAIR(IS_RESOURCE, IS_RESOURCE):
+			if (Z_RESVAL_P(op1) == Z_RESVAL_P(op2)) {
 				ZVAL_LONG(result, 0);
 				return SUCCESS;
+			}
+			return FAILURE;
 
-			case TYPE_PAIR(IS_NULL, IS_BOOL):
-				ZVAL_LONG(result, Z_LVAL_P(op2) ? -1 : 0);
-				return SUCCESS;
+		// int <-> float
+		case TYPE_PAIR(IS_DOUBLE, IS_LONG):
+			Z_DVAL_P(result) = Z_DVAL_P(op1) - (double)Z_LVAL_P(op2);
+			ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
+			return SUCCESS;
 
-			case TYPE_PAIR(IS_BOOL, IS_NULL):
-				ZVAL_LONG(result, Z_LVAL_P(op1) ? 1 : 0);
-				return SUCCESS;
+		case TYPE_PAIR(IS_LONG, IS_DOUBLE):
+			Z_DVAL_P(result) = (double)Z_LVAL_P(op1) - Z_DVAL_P(op2);
+			ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
+			return SUCCESS;
 
-			case TYPE_PAIR(IS_BOOL, IS_BOOL):
-				ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_LVAL_P(op1) - Z_LVAL_P(op2)));
-				return SUCCESS;
+		// null <-> int/float
+		case TYPE_PAIR(IS_NULL, IS_LONG):
+			ZVAL_LONG(result, 0 > Z_LVAL_P(op2) ? 1 : (0 < Z_LVAL_P(op2) ? -1 : 0));
+			return SUCCESS;
 
-			// string and null
-			case TYPE_PAIR(IS_STRING, IS_STRING):
-				Z_LVAL_P(result) = zend_binary_zval_strcmp(op1, op2);
-				ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_LVAL_P(result)));
-				return SUCCESS;
+		case TYPE_PAIR(IS_NULL, IS_DOUBLE):
+			ZVAL_LONG(result, 0 > Z_DVAL_P(op2) ? 1 : (0 < Z_DVAL_P(op2) ? -1 : 0));
+			return SUCCESS;
 
-			case TYPE_PAIR(IS_NULL, IS_STRING):
-				ZVAL_LONG(result, zend_binary_strcmp("", 0, Z_STRVAL_P(op2), Z_STRLEN_P(op2)));
-				return SUCCESS;
+		case TYPE_PAIR(IS_LONG, IS_NULL):
+			ZVAL_LONG(result, Z_LVAL_P(op1) > 0 ? 1 : (Z_LVAL_P(op1) ? -1 : 0));
+			return SUCCESS;
 
-			case TYPE_PAIR(IS_STRING, IS_NULL):
-				ZVAL_LONG(result, zend_binary_strcmp(Z_STRVAL_P(op1), Z_STRLEN_P(op1), "", 0));
-				return SUCCESS;
+		case TYPE_PAIR(IS_DOUBLE, IS_NULL):
+			ZVAL_LONG(result, Z_DVAL_P(op1) > 0 ? 1 : (Z_DVAL_P(op1) ? -1 : 0));
+			return SUCCESS;
 
-			// string and number
-			case TYPE_PAIR(IS_STRING, IS_LONG):
-				if (is_numeric_string(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, NULL, 0) == IS_LONG) {
-					ZVAL_LONG(result, lval > Z_LVAL_P(op2) ? 1 : (lval < Z_LVAL_P(op2) ? -1 : 0));
-					return SUCCESS;
-				}
-				return FAILURE;
+		// null <-> boolean
+		case TYPE_PAIR(IS_NULL, IS_BOOL):
+			ZVAL_LONG(result, Z_LVAL_P(op2) ? -1 : 0);
+			return SUCCESS;
 
-			case TYPE_PAIR(IS_LONG, IS_STRING):
-				if (is_numeric_string(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, NULL, 0) == IS_LONG) {
-					ZVAL_LONG(result, Z_LVAL_P(op1) > lval ? 1 : (Z_LVAL_P(op1) < lval ? -1 : 0));
-					return SUCCESS;
-				}
-				return FAILURE;
+		case TYPE_PAIR(IS_BOOL, IS_NULL):
+			ZVAL_LONG(result, Z_LVAL_P(op1) ? 1 : 0);
+			return SUCCESS;
 
-			case TYPE_PAIR(IS_STRING, IS_DOUBLE):
-				switch (is_numeric_string(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, &dval, 0)) {
-					case IS_LONG:
-						Z_DVAL_P(result) = (double)lval - Z_DVAL_P(op2);
-						ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
-						return SUCCESS;
-					case IS_DOUBLE:
-						Z_DVAL_P(result) = dval - Z_DVAL_P(op2);
-						ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
-						return SUCCESS;
-				}
-				return FAILURE;
+		// string <-> null
+		case TYPE_PAIR(IS_NULL, IS_STRING):
+			ZVAL_LONG(result, zend_binary_strcmp("", 0, Z_STRVAL_P(op2), Z_STRLEN_P(op2)));
+			return SUCCESS;
 
-			case TYPE_PAIR(IS_DOUBLE, IS_STRING):
-				switch (is_numeric_string(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, &dval, 0)) {
-					case IS_LONG:
-						Z_DVAL_P(result) = Z_DVAL_P(op1) - (double)lval;
-						ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
-						return SUCCESS;
-					case IS_DOUBLE:
-						Z_DVAL_P(result) = Z_DVAL_P(op1) - dval;
-						ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
-						return SUCCESS;
-				}
-				return FAILURE;
+		case TYPE_PAIR(IS_STRING, IS_NULL):
+			ZVAL_LONG(result, zend_binary_strcmp(Z_STRVAL_P(op1), Z_STRLEN_P(op1), "", 0));
+			return SUCCESS;
 
-			// resource comparison
-			case TYPE_PAIR(IS_RESOURCE, IS_RESOURCE):
-				if (Z_RESVAL_P(op1) == Z_RESVAL_P(op2)) {
-					ZVAL_LONG(result, 0);
-					return SUCCESS;
-				}
-				return FAILURE;
-
-			// array to array
-			case TYPE_PAIR(IS_ARRAY, IS_ARRAY):
-				zend_compare_arrays(result, op1, op2 TSRMLS_CC);
-				return SUCCESS;
-
-			// ary and null
-			case TYPE_PAIR(IS_ARRAY, IS_NULL):
-				ZVAL_LONG(result, zend_hash_num_elements(Z_ARRVAL_P(op1)) == 0 ? 0 : 1);
-				return SUCCESS;
-
-			case TYPE_PAIR(IS_NULL, IS_ARRAY):
-				ZVAL_LONG(result, zend_hash_num_elements(Z_ARRVAL_P(op2)) == 0 ? 0 : -1);
-				return SUCCESS;
-
-			// array to bool
-			case TYPE_PAIR(IS_ARRAY, IS_BOOL):
-				if (Z_LVAL_P(op2) == 0) {
-					if (zend_hash_num_elements(Z_ARRVAL_P(op1)) == 0) {
-						ZVAL_LONG(result, 0);
-						return SUCCESS;
-					}
-				} else if (zend_hash_num_elements(Z_ARRVAL_P(op1)) != 0) {
-					ZVAL_LONG(result, 0);
-					return SUCCESS;
-				}
-				return FAILURE;
-
-			case TYPE_PAIR(IS_BOOL, IS_ARRAY): 
-				if (Z_LVAL_P(op1) == 0) {
-					if (zend_hash_num_elements(Z_ARRVAL_P(op2)) == 0) {
-						ZVAL_LONG(result, 0);
-						return SUCCESS;
-					}
-				} else if (zend_hash_num_elements(Z_ARRVAL_P(op2)) != 0) {
-					ZVAL_LONG(result, 0);
-					return SUCCESS;
-				}
-				return FAILURE;
-
-			// array to number
-			case TYPE_PAIR(IS_ARRAY, IS_LONG):
-				lval = zend_hash_num_elements(Z_ARRVAL_P(op1));
+		// string <-> int/float
+		case TYPE_PAIR(IS_STRING, IS_LONG):
+			if (is_numeric_string(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, NULL, 0) == IS_LONG) {
 				ZVAL_LONG(result, lval > Z_LVAL_P(op2) ? 1 : (lval < Z_LVAL_P(op2) ? -1 : 0));
 				return SUCCESS;
+			}
+			return FAILURE;
 
-			case TYPE_PAIR(IS_LONG, IS_ARRAY):
-				lval = zend_hash_num_elements(Z_ARRVAL_P(op2));
+		case TYPE_PAIR(IS_LONG, IS_STRING):
+			if (is_numeric_string(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, NULL, 0) == IS_LONG) {
 				ZVAL_LONG(result, Z_LVAL_P(op1) > lval ? 1 : (Z_LVAL_P(op1) < lval ? -1 : 0));
 				return SUCCESS;
+			}
+			return FAILURE;
 
-			case TYPE_PAIR(IS_ARRAY, IS_DOUBLE):
-				lval = zend_hash_num_elements(Z_ARRVAL_P(op1));
-				ZVAL_LONG(result, lval > Z_DVAL_P(op2) ? 1 : (lval < Z_DVAL_P(op2) ? -1 : 0));
+		case TYPE_PAIR(IS_STRING, IS_DOUBLE):
+			switch (is_numeric_string(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, &dval, 0)) {
+				case IS_LONG:
+					Z_DVAL_P(result) = (double)lval - Z_DVAL_P(op2);
+					ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
+					return SUCCESS;
+				case IS_DOUBLE:
+					Z_DVAL_P(result) = dval - Z_DVAL_P(op2);
+					ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
+					return SUCCESS;
+			}
+			return FAILURE;
+
+		case TYPE_PAIR(IS_DOUBLE, IS_STRING):
+			switch (is_numeric_string(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, &dval, 0)) {
+				case IS_LONG:
+					Z_DVAL_P(result) = Z_DVAL_P(op1) - (double)lval;
+					ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
+					return SUCCESS;
+				case IS_DOUBLE:
+					Z_DVAL_P(result) = Z_DVAL_P(op1) - dval;
+					ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_DVAL_P(result)));
+					return SUCCESS;
+			}
+			return FAILURE;
+
+		// array <-> null
+		case TYPE_PAIR(IS_ARRAY, IS_NULL):
+			ZVAL_LONG(result, zend_hash_num_elements(Z_ARRVAL_P(op1)) == 0 ? 0 : 1);
+			return SUCCESS;
+
+		case TYPE_PAIR(IS_NULL, IS_ARRAY):
+			ZVAL_LONG(result, zend_hash_num_elements(Z_ARRVAL_P(op2)) == 0 ? 0 : -1);
+			return SUCCESS;
+
+		// array <-> bool
+		case TYPE_PAIR(IS_ARRAY, IS_BOOL):
+			if (Z_LVAL_P(op2) == 0) {
+				if (zend_hash_num_elements(Z_ARRVAL_P(op1)) == 0) {
+					ZVAL_LONG(result, 0);
+					return SUCCESS;
+				}
+			} else if (zend_hash_num_elements(Z_ARRVAL_P(op1)) != 0) {
+				ZVAL_LONG(result, 0);
 				return SUCCESS;
+			}
+			return FAILURE;
 
-			case TYPE_PAIR(IS_DOUBLE, IS_ARRAY):
-				lval = zend_hash_num_elements(Z_ARRVAL_P(op2));
-				ZVAL_LONG(result, Z_DVAL_P(op1) > lval ? 1 : (Z_DVAL_P(op1) < lval ? -1 : 0));
+		case TYPE_PAIR(IS_BOOL, IS_ARRAY): 
+			if (Z_LVAL_P(op1) == 0) {
+				if (zend_hash_num_elements(Z_ARRVAL_P(op2)) == 0) {
+					ZVAL_LONG(result, 0);
+					return SUCCESS;
+				}
+			} else if (zend_hash_num_elements(Z_ARRVAL_P(op2)) != 0) {
+				ZVAL_LONG(result, 0);
 				return SUCCESS;
+			}
+			return FAILURE;
 
-			// object comparison
-			// and all other are not comparable
-			default:
-				if (Z_TYPE_P(op1) == IS_OBJECT && Z_OBJ_HANDLER_P(op1, compare)) {
-					return Z_OBJ_HANDLER_P(op1, compare)(result, op1, op2 TSRMLS_CC);
-				} else if (Z_TYPE_P(op2) == IS_OBJECT && Z_OBJ_HANDLER_P(op2, compare)) {
-					return Z_OBJ_HANDLER_P(op2, compare)(result, op1, op2 TSRMLS_CC);
+		// array <-> int/float
+		case TYPE_PAIR(IS_ARRAY, IS_LONG):
+			lval = zend_hash_num_elements(Z_ARRVAL_P(op1));
+			ZVAL_LONG(result, lval > Z_LVAL_P(op2) ? 1 : (lval < Z_LVAL_P(op2) ? -1 : 0));
+			return SUCCESS;
+
+		case TYPE_PAIR(IS_LONG, IS_ARRAY):
+			lval = zend_hash_num_elements(Z_ARRVAL_P(op2));
+			ZVAL_LONG(result, Z_LVAL_P(op1) > lval ? 1 : (Z_LVAL_P(op1) < lval ? -1 : 0));
+			return SUCCESS;
+
+		case TYPE_PAIR(IS_ARRAY, IS_DOUBLE):
+			lval = zend_hash_num_elements(Z_ARRVAL_P(op1));
+			ZVAL_LONG(result, lval > Z_DVAL_P(op2) ? 1 : (lval < Z_DVAL_P(op2) ? -1 : 0));
+			return SUCCESS;
+
+		case TYPE_PAIR(IS_DOUBLE, IS_ARRAY):
+			lval = zend_hash_num_elements(Z_ARRVAL_P(op2));
+			ZVAL_LONG(result, Z_DVAL_P(op1) > lval ? 1 : (Z_DVAL_P(op1) < lval ? -1 : 0));
+			return SUCCESS;
+
+		// object comparison
+		default: {
+			int ret;
+			zval *op_free;
+
+			if (Z_TYPE_P(op1) == IS_OBJECT && Z_OBJ_HANDLER_P(op1, compare)) {
+				return Z_OBJ_HANDLER_P(op1, compare)(result, op1, op2 TSRMLS_CC);
+			} else if (Z_TYPE_P(op2) == IS_OBJECT && Z_OBJ_HANDLER_P(op2, compare)) {
+				return Z_OBJ_HANDLER_P(op2, compare)(result, op1, op2 TSRMLS_CC);
+			}
+			if (Z_TYPE_P(op1) == IS_OBJECT && Z_TYPE_P(op2) == IS_OBJECT) {
+				if (Z_OBJ_HANDLE_P(op1) == Z_OBJ_HANDLE_P(op2)) {
+					/* object handles are identical, apparently this is the same object */
+					ZVAL_LONG(result, 0);
+					return SUCCESS;
 				}
-				if (Z_TYPE_P(op1) == IS_OBJECT && Z_TYPE_P(op2) == IS_OBJECT) {
-					if (Z_OBJ_HANDLE_P(op1) == Z_OBJ_HANDLE_P(op2)) {
-						/* object handles are identical, apparently this is the same object */
-						ZVAL_LONG(result, 0);
-						return SUCCESS;
-					}
-					if (Z_OBJ_HANDLER_P(op1, compare_objects) == Z_OBJ_HANDLER_P(op2, compare_objects)) {
-						ZVAL_LONG(result, Z_OBJ_HANDLER_P(op1, compare_objects)(op1, op2 TSRMLS_CC));
-						return SUCCESS;
-					}
+				if (Z_OBJ_HANDLER_P(op1, compare_objects) == Z_OBJ_HANDLER_P(op2, compare_objects)) {
+					ZVAL_LONG(result, Z_OBJ_HANDLER_P(op1, compare_objects)(op1, op2 TSRMLS_CC));
+					return SUCCESS;
 				}
-				if (Z_TYPE_P(op1) == IS_OBJECT) {
-					if (Z_OBJ_HT_P(op1)->get) {
-						op_free = Z_OBJ_HT_P(op1)->get(op1 TSRMLS_CC);
-						ret = compare_function(result, op_free, op2 TSRMLS_CC);
-						zend_free_obj_get_result(op_free TSRMLS_CC);
-						return ret;
-					} else if (Z_TYPE_P(op2) != IS_OBJECT && Z_OBJ_HT_P(op1)->cast_object) {
-						ALLOC_INIT_ZVAL(op_free);
-						if (Z_OBJ_HT_P(op1)->cast_object(op1, op_free, Z_TYPE_P(op2) TSRMLS_CC) == FAILURE) {
-							ZVAL_LONG(result, 1);
-							zend_free_obj_get_result(op_free TSRMLS_CC);
-							return SUCCESS;
-						}
-						ret = compare_function(result, op_free, op2 TSRMLS_CC);
-						zend_free_obj_get_result(op_free TSRMLS_CC);
-						return ret;
-					}
-				}
-				if (Z_TYPE_P(op2) == IS_OBJECT) {
-					if (Z_OBJ_HT_P(op2)->get) {
-						op_free = Z_OBJ_HT_P(op2)->get(op2 TSRMLS_CC);
-						ret = compare_function(result, op1, op_free TSRMLS_CC);
-						zend_free_obj_get_result(op_free TSRMLS_CC);
-						return ret;
-					} else if (Z_TYPE_P(op1) != IS_OBJECT && Z_OBJ_HT_P(op2)->cast_object) {
-						ALLOC_INIT_ZVAL(op_free);
-						if (Z_OBJ_HT_P(op2)->cast_object(op2, op_free, Z_TYPE_P(op1) TSRMLS_CC) == FAILURE) {
-							ZVAL_LONG(result, -1);
-							zend_free_obj_get_result(op_free TSRMLS_CC);
-							return SUCCESS;
-						}
-						ret = compare_function(result, op1, op_free TSRMLS_CC);
-						zend_free_obj_get_result(op_free TSRMLS_CC);
-						return ret;
-					} else if (Z_TYPE_P(op1) == IS_OBJECT) {
+			}
+			if (Z_TYPE_P(op1) == IS_OBJECT) {
+				if (Z_OBJ_HT_P(op1)->get) {
+					op_free = Z_OBJ_HT_P(op1)->get(op1 TSRMLS_CC);
+					ret = compare_function(result, op_free, op2 TSRMLS_CC);
+					zend_free_obj_get_result(op_free TSRMLS_CC);
+					return ret;
+				} else if (Z_TYPE_P(op2) != IS_OBJECT && Z_OBJ_HT_P(op1)->cast_object) {
+					ALLOC_INIT_ZVAL(op_free);
+					if (Z_OBJ_HT_P(op1)->cast_object(op1, op_free, Z_TYPE_P(op2) TSRMLS_CC) == FAILURE) {
 						ZVAL_LONG(result, 1);
+						zend_free_obj_get_result(op_free TSRMLS_CC);
 						return SUCCESS;
 					}
+					ret = compare_function(result, op_free, op2 TSRMLS_CC);
+					zend_free_obj_get_result(op_free TSRMLS_CC);
+					return ret;
 				}
-/*
-				if (!converted) {
-					if (Z_TYPE_P(op1) == IS_NULL) {
-						zendi_convert_to_boolean(op2, op2_copy, result);
-						ZVAL_LONG(result, Z_LVAL_P(op2) ? -1 : 0);
+			}
+			if (Z_TYPE_P(op2) == IS_OBJECT) {
+				if (Z_OBJ_HT_P(op2)->get) {
+					op_free = Z_OBJ_HT_P(op2)->get(op2 TSRMLS_CC);
+					ret = compare_function(result, op1, op_free TSRMLS_CC);
+					zend_free_obj_get_result(op_free TSRMLS_CC);
+					return ret;
+				} else if (Z_TYPE_P(op1) != IS_OBJECT && Z_OBJ_HT_P(op2)->cast_object) {
+					ALLOC_INIT_ZVAL(op_free);
+					if (Z_OBJ_HT_P(op2)->cast_object(op2, op_free, Z_TYPE_P(op1) TSRMLS_CC) == FAILURE) {
+						ZVAL_LONG(result, -1);
+						zend_free_obj_get_result(op_free TSRMLS_CC);
 						return SUCCESS;
-					} else if (Z_TYPE_P(op2) == IS_NULL) {
-						zendi_convert_to_boolean(op1, op1_copy, result);
-						ZVAL_LONG(result, Z_LVAL_P(op1) ? 1 : 0);
-						return SUCCESS;
-					} else if (Z_TYPE_P(op1) == IS_BOOL) {
-						zendi_convert_to_boolean(op2, op2_copy, result);
-						ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_LVAL_P(op1) - Z_LVAL_P(op2)));
-						return SUCCESS;
-					} else if (Z_TYPE_P(op2) == IS_BOOL) {
-						zendi_convert_to_boolean(op1, op1_copy, result);
-						ZVAL_LONG(result, ZEND_NORMALIZE_BOOL(Z_LVAL_P(op1) - Z_LVAL_P(op2)));
-						return SUCCESS;
-					} else {
-						zendi_convert_scalar_to_number(op1, op1_copy, result);
-						zendi_convert_scalar_to_number(op2, op2_copy, result);
-						converted = 1;
 					}
-				} else if (Z_TYPE_P(op1)==IS_ARRAY) {
+					ret = compare_function(result, op1, op_free TSRMLS_CC);
+					zend_free_obj_get_result(op_free TSRMLS_CC);
+					return ret;
+				} else if (Z_TYPE_P(op1) == IS_OBJECT) {
 					ZVAL_LONG(result, 1);
 					return SUCCESS;
-				} else if (Z_TYPE_P(op2)==IS_ARRAY) {
-					ZVAL_LONG(result, -1);
-					return SUCCESS;
-				} else if (Z_TYPE_P(op1)==IS_OBJECT) {
-					ZVAL_LONG(result, 1);
-					return SUCCESS;
-				} else if (Z_TYPE_P(op2)==IS_OBJECT) {
-					ZVAL_LONG(result, -1);
-					return SUCCESS;
-				} else {
-					return FAILURE;
 				}
-*/
-				return FAILURE;
+			}
 		}
-//	}
+	}
+
+	// all other are not comparable
+	return FAILURE;
 }
 /* }}} */
 
