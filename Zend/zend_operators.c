@@ -1669,6 +1669,27 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 				}
 				return FAILURE;
 
+			// array to number
+			case TYPE_PAIR(IS_ARRAY, IS_LONG):
+				lval = zend_hash_num_elements(Z_ARRVAL_P(op1));
+				ZVAL_LONG(result, lval > Z_LVAL_P(op2) ? 1 : (lval < Z_LVAL_P(op2) ? -1 : 0));
+				return SUCCESS;
+
+			case TYPE_PAIR(IS_LONG, IS_ARRAY):
+				lval = zend_hash_num_elements(Z_ARRVAL_P(op2));
+				ZVAL_LONG(result, Z_LVAL_P(op1) > lval ? 1 : (Z_LVAL_P(op1) < lval ? -1 : 0));
+				return SUCCESS;
+
+			case TYPE_PAIR(IS_ARRAY, IS_DOUBLE):
+				lval = zend_hash_num_elements(Z_ARRVAL_P(op1));
+				ZVAL_LONG(result, lval > Z_DVAL_P(op2) ? 1 : (lval < Z_DVAL_P(op2) ? -1 : 0));
+				return SUCCESS;
+
+			case TYPE_PAIR(IS_DOUBLE, IS_ARRAY):
+				lval = zend_hash_num_elements(Z_ARRVAL_P(op2));
+				ZVAL_LONG(result, Z_DVAL_P(op1) > lval ? 1 : (Z_DVAL_P(op1) < lval ? -1 : 0));
+				return SUCCESS;
+
 			// TODO: review
 			case TYPE_PAIR(IS_OBJECT, IS_NULL):
 				ZVAL_LONG(result, 1);

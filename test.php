@@ -32,30 +32,30 @@ Comparing different types:
 	- null to bool          : handle null as the same as false
 	- null to int/float     : handle null as the same as 0
 	- null to string        : handle null as the same as an empty string
-	- null to array         : not comparable
+	- null to array         : handle null as the same as an empty array
 	- null to resource      : not comparable
-	- null to object        : not comparable - if not changed by object
+	- null to object        : not comparable
 	- bool to int/float     : handle numbers of 0 as false and all other as true
 	- bool to string        : handle an empty string as false and all other as true
 	- bool to array         : on equality: handle an empty array as false and all other as true
 	                          on ordering: not comparable
 	- bool to resource      : on equality: handle resources as true
 	                          on ordering: not comparable
-	- bool to object        : on equality: handle objects as true - if not changed by object
+	- bool to object        : on equality: handle objects as true
 	                          on ordering: not comparable
 	- int/float to string   : convert string into int/float - not comparable on an invalid number or error
 	                          Format for a valid number in base 10: ^[+-]?[0-9]+$
 	                          Format for a valid number in base 16: ^0x[0-9a-fA-F]+$
 	                          Format for a valid float (TODO):      ^[+-]? ... $
-	- int/float to array	: not comparable
+	- int/float to array	: count array entries to compare two numbers
 	- int/float to resource	: not comparable
-	- int/float to object   : not comparable - if not changed by object
+	- int/float to object   : not comparable
 	- string to array       : not comparable
 	- string to resource    : not comparable
-	- string to object      : not comparable - if not changed by object
+	- string to object      : not comparable
 	- array to resource     : not comparable
 	- array to object       : not comparable
-	- resource to object    : not comparable - if not changed by object
+	- resource to object    : not comparable
 
 Comparing booleans:
 	- TRUE === TRUE, FALSE === FALSE, TRUE !== FALSE, TRUE > FALSE
@@ -71,11 +71,8 @@ Comparing strings:
 	- ordering will be done on byte sequence
 
 Comparing arrays:
-	- an array will be identical all elements (keys and values) are identical
+	- an array will be identical if all elements (keys and values) are identical
 	- ordering will be done using the number of elements of the arrays
-
-
-
 RULES;
 
 error_reporting(-1);
@@ -158,12 +155,19 @@ function fmt($var) {
             return var_export($var, true);
         case 'resource':
             return print_r($var, true);
+        case 'array':
+            $list = array();
+            foreach ($var as $v) {
+                $list[] = fmt($v);
+            }
+            return '[' . implode(',', $list) . ']';
+
         default:
             return var_export($var, true);
     }
 }
 
-echo "String (non-numeric) to string (non-numeric):\n";
+echo "\nString (non-numeric) to string (non-numeric):\n";
 cmp('str', 'str', 0);
 cmp('str ', 'str', 1);
 cmp('php', 'str', -1);
@@ -244,7 +248,7 @@ cmp(NULL, 0.0, 0);
 cmp(NULL, -1.0, 1);
 cmp(NULL, 1.0, -1);
 
-echo "Array comparison:\n";
+echo "\nArray comparison:\n";
 cmp(array(), array(), 0);
 cmp(array(1), array(1), 0);
 cmp(array(1), array(2), -1);
@@ -257,9 +261,9 @@ cmp(array(), true, false);
 cmp(array(1), true, 0);
 cmp(array(1,2), true, 0);
 cmp(array(), 0, 0);
-cmp(array(1), 0, false);
-cmp(array(), 1, false);
-cmp(array(1), 1, true);
+cmp(array(1), 0, 1);
+cmp(array(), 1, -1);
+cmp(array(1), 1, 0);
 cmp(array(1), 2, -1);
 
 
