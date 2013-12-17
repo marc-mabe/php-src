@@ -1507,6 +1507,163 @@ static inline void zend_free_obj_get_result(zval *op TSRMLS_DC) /* {{{ */
 }
 /* }}} */
 
+ZEND_API zend_compare_result_t zend_compare(zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
+{
+	int ival = 0;
+        long lval = 0;
+        double dval = 0;
+	zval zend_val;
+	zval *op_free;
+
+	switch (TYPE_PAIR(Z_TYPE_P(op1), Z_TYPE_P(op2))) {
+		case TYPE_PAIR(IS_NULL, IS_NULL):
+			return IS_EQUAL;
+
+                case TYPE_PAIR(IS_BOOL, IS_BOOL):
+                case TYPE_PAIR(IS_LONG, IS_LONG):
+			return Z_LVAL_P(op1) < Z_LVAL_P(op2) ? IS_SMALLER : (Z_LVAL_P(op1) > Z_LVAL_P(op2) ? IS_GREATER : IS_EQUAL);
+
+                case TYPE_PAIR(IS_DOUBLE, IS_DOUBLE):
+			return Z_DVAL_P(op1) < Z_DVAL_P(op2) ? IS_SMALLER : (Z_DVAL_P(op1) > Z_DVAL_P(op2) ? IS_GREATER : IS_EQUAL);
+
+                case TYPE_PAIR(IS_STRING, IS_STRING):
+                        ival = zend_binary_zval_strcmp(op1, op2);
+			return ival < 0 ? IS_SMALLER : (ival > 0 ? IS_GREATER : IS_EQUAL);
+
+                case TYPE_PAIR(IS_ARRAY, IS_ARRAY):
+			ival = zend_compare_symbol_tables_i(Z_ARRVAL_P(op1), Z_ARRVAL_P(op2));
+			return ival < 0 ? IS_SMALLER : (ival > 0 ? IS_GREATER : IS_EQUAL);
+
+                case TYPE_PAIR(IS_RESOURCE, IS_RESOURCE):
+			return Z_RESVAL_P(op1) == Z_RESVAL_P(op2) ? IS_EQUAL : IS_NOT_EQUAL;
+
+                // long <-> double = (double)long <-> double
+                case TYPE_PAIR(IS_DOUBLE, IS_LONG):
+			dval = (double)Z_LVAL_P(op2);
+			return Z_DVAL_P(op1) < dval ? IS_SMALLER : (Z_DVAL_P(op1) > dval ? IS_GREATER : IS_EQUAL);
+
+                case TYPE_PAIR(IS_LONG, IS_DOUBLE):
+			dval = (double)Z_LVAL_P(op1);
+			return dval < Z_DVAL_P(op2) ? IS_SMALLER : (dval > Z_DVAL_P(op2) ? IS_GREATER : IS_EQUAL);
+
+                // null <-> long   = 0 <-> long
+		// null <-> double = 0 <-> double
+                case TYPE_PAIR(IS_NULL, IS_LONG):
+                        return 0 < Z_LVAL_P(op2) ? IS_SMALLER : (0 > Z_LVAL_P(op2) ? IS_GREATER : IS_EQUAL);
+
+                case TYPE_PAIR(IS_NULL, IS_DOUBLE):
+                        return 0 < Z_DVAL_P(op2) ? IS_SMALLER : (0 > Z_DVAL_P(op2) ? IS_GREATER : IS_EQUAL);
+
+                case TYPE_PAIR(IS_LONG, IS_NULL):
+                        return Z_LVAL_P(op1) < 0 ? IS_SMALLER : (Z_LVAL_P(op1) > 0 ? IS_GREATER : IS_EQUAL);
+
+                case TYPE_PAIR(IS_DOUBLE, IS_NULL):
+                        return Z_DVAL_P(op1) < 0 ? IS_SMALLER : (Z_DVAL_P(op1) > 0 ? IS_GREATER : IS_EQUAL);
+
+                // null <-> boolean = false <-> boolean
+                case TYPE_PAIR(IS_NULL, IS_BOOL):
+                        return Z_LVAL_P(op2) ? IS_SMALLER : IS_EQUAL;
+
+                case TYPE_PAIR(IS_BOOL, IS_NULL):
+                        return Z_LVAL_P(op1) ? IS_GREATER : IS_EQUAL;
+
+                // null <-> string = "" <-> string
+                case TYPE_PAIR(IS_NULL, IS_STRING):
+			return Z_STRLEN_P(op2) > 0 ? IS_SMALLER : IS_EQUAL;
+
+                case TYPE_PAIR(IS_STRING, IS_NULL):
+			return Z_STRLEN_P(op1) > 0 ? IS_GREATER : IS_EQUAL;
+
+                // string <-> long   = (long)string <-> long
+		// string <-> double = (double)string <-> double
+                case TYPE_PAIR(IS_STRING, IS_LONG):
+                        if (is_numeric_string(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, NULL, 0) == IS_LONG) {
+                                return lval < Z_LVAL_P(op2) ? IS_SMALLER : (lval > Z_LVAL_P(op2) ? IS_GREATER : IS_EQUAL);
+                        }
+                        return IS_NOT_EQUAL;
+
+                case TYPE_PAIR(IS_LONG, IS_STRING):
+                        if (is_numeric_string(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, NULL, 0) == IS_LONG) {
+                                return Z_LVAL_P(op1) < lval ? IS_SMALLER : (Z_LVAL_P(op1) > lval ? IS_GREATER : IS_EQUAL);
+                        }
+                        return IS_NOT_EQUAL;
+
+                case TYPE_PAIR(IS_STRING, IS_DOUBLE):
+                        switch (is_numeric_string(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, &dval, 0)) {
+                                case IS_LONG:
+					dval = (double)lval;
+                                case IS_DOUBLE:
+					return dval < Z_DVAL_P(op2) ? IS_SMALLER : (dval > Z_DVAL_P(op2) ? IS_GREATER : IS_EQUAL);
+                        }
+                        return IS_NOT_EQUAL;
+
+                case TYPE_PAIR(IS_DOUBLE, IS_STRING):
+                        switch (is_numeric_string(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, &dval, 0)) {
+                                case IS_LONG:
+					dval = (double)lval;
+                                case IS_DOUBLE:
+					return Z_DVAL_P(op1) < dval ? IS_SMALLER : (Z_DVAL_P(op1) > dval ? IS_GREATER : IS_EQUAL);
+                        }
+                        return IS_NOT_EQUAL;
+
+                // object comparison
+                default:
+                        if (Z_TYPE_P(op1) == IS_OBJECT && Z_OBJ_HANDLER_P(op1, compare)) {
+                                Z_OBJ_HANDLER_P(op1, compare)(&zend_val, op1, op2 TSRMLS_CC);
+				return Z_LVAL(zend_val);
+                        } else if (Z_TYPE_P(op2) == IS_OBJECT && Z_OBJ_HANDLER_P(op2, compare)) {
+                                Z_OBJ_HANDLER_P(op2, compare)(&zend_val, op1, op2 TSRMLS_CC);
+				return Z_LVAL(zend_val);
+                        }
+                        if (Z_TYPE_P(op1) == IS_OBJECT && Z_TYPE_P(op2) == IS_OBJECT) {
+                                if (Z_OBJ_HANDLE_P(op1) == Z_OBJ_HANDLE_P(op2)) {
+                                        /* object handles are identical, apparently this is the same object */
+					return IS_EQUAL;
+                                }
+                                if (Z_OBJ_HANDLER_P(op1, compare_objects) == Z_OBJ_HANDLER_P(op2, compare_objects)) {
+                                        return Z_OBJ_HANDLER_P(op1, compare_objects)(op1, op2 TSRMLS_CC);
+                                }
+                        }
+                        if (Z_TYPE_P(op1) == IS_OBJECT) {
+                                if (Z_OBJ_HT_P(op1)->get) {
+                                        op_free = Z_OBJ_HT_P(op1)->get(op1 TSRMLS_CC);
+                                        ival = zend_compare(op_free, op2 TSRMLS_CC);
+                                        zend_free_obj_get_result(op_free TSRMLS_CC);
+                                        return ival;
+                                } else if (Z_TYPE_P(op2) != IS_OBJECT && Z_OBJ_HT_P(op1)->cast_object) {
+                                        ALLOC_INIT_ZVAL(op_free);
+                                        if (Z_OBJ_HT_P(op1)->cast_object(op1, op_free, Z_TYPE_P(op2) TSRMLS_CC) == FAILURE) {
+                                                zend_free_obj_get_result(op_free TSRMLS_CC);
+                                                return IS_NOT_EQUAL;
+                                        }
+                                        ival = zend_compare(op_free, op2 TSRMLS_CC);
+                                        zend_free_obj_get_result(op_free TSRMLS_CC);
+                                        return ival;
+                                }
+                        }
+                        if (Z_TYPE_P(op2) == IS_OBJECT) {
+                                if (Z_OBJ_HT_P(op2)->get) {
+                                        op_free = Z_OBJ_HT_P(op2)->get(op2 TSRMLS_CC);
+                                        ival = zend_compare(op1, op_free TSRMLS_CC);
+                                        zend_free_obj_get_result(op_free TSRMLS_CC);
+                                        return ival;
+                                } else if (Z_TYPE_P(op1) != IS_OBJECT && Z_OBJ_HT_P(op2)->cast_object) {
+                                        ALLOC_INIT_ZVAL(op_free);
+                                        if (Z_OBJ_HT_P(op2)->cast_object(op2, op_free, Z_TYPE_P(op1) TSRMLS_CC) == FAILURE) {
+                                                zend_free_obj_get_result(op_free TSRMLS_CC);
+                                                return IS_NOT_EQUAL;
+                                        }
+                                        ival = zend_compare(op1, op_free TSRMLS_CC);
+                                        zend_free_obj_get_result(op_free TSRMLS_CC);
+                                        return ival;
+                                }
+                        }
+        }
+
+        return IS_NOT_EQUAL;
+}
+/* }}} */
+
 ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
 {
 	long lval = 0;
@@ -1637,61 +1794,6 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 			}
 			return FAILURE;
 
-		// array <-> null
-		case TYPE_PAIR(IS_ARRAY, IS_NULL):
-			ZVAL_LONG(result, zend_hash_num_elements(Z_ARRVAL_P(op1)) == 0 ? 0 : 1);
-			return SUCCESS;
-
-		case TYPE_PAIR(IS_NULL, IS_ARRAY):
-			ZVAL_LONG(result, zend_hash_num_elements(Z_ARRVAL_P(op2)) == 0 ? 0 : -1);
-			return SUCCESS;
-
-		// array <-> bool
-		case TYPE_PAIR(IS_ARRAY, IS_BOOL):
-			if (Z_LVAL_P(op2) == 0) {
-				if (zend_hash_num_elements(Z_ARRVAL_P(op1)) == 0) {
-					ZVAL_LONG(result, 0);
-					return SUCCESS;
-				}
-			} else if (zend_hash_num_elements(Z_ARRVAL_P(op1)) != 0) {
-				ZVAL_LONG(result, 0);
-				return SUCCESS;
-			}
-			return FAILURE;
-
-		case TYPE_PAIR(IS_BOOL, IS_ARRAY): 
-			if (Z_LVAL_P(op1) == 0) {
-				if (zend_hash_num_elements(Z_ARRVAL_P(op2)) == 0) {
-					ZVAL_LONG(result, 0);
-					return SUCCESS;
-				}
-			} else if (zend_hash_num_elements(Z_ARRVAL_P(op2)) != 0) {
-				ZVAL_LONG(result, 0);
-				return SUCCESS;
-			}
-			return FAILURE;
-
-		// array <-> int/float
-		case TYPE_PAIR(IS_ARRAY, IS_LONG):
-			lval = zend_hash_num_elements(Z_ARRVAL_P(op1));
-			ZVAL_LONG(result, lval > Z_LVAL_P(op2) ? 1 : (lval < Z_LVAL_P(op2) ? -1 : 0));
-			return SUCCESS;
-
-		case TYPE_PAIR(IS_LONG, IS_ARRAY):
-			lval = zend_hash_num_elements(Z_ARRVAL_P(op2));
-			ZVAL_LONG(result, Z_LVAL_P(op1) > lval ? 1 : (Z_LVAL_P(op1) < lval ? -1 : 0));
-			return SUCCESS;
-
-		case TYPE_PAIR(IS_ARRAY, IS_DOUBLE):
-			lval = zend_hash_num_elements(Z_ARRVAL_P(op1));
-			ZVAL_LONG(result, lval > Z_DVAL_P(op2) ? 1 : (lval < Z_DVAL_P(op2) ? -1 : 0));
-			return SUCCESS;
-
-		case TYPE_PAIR(IS_DOUBLE, IS_ARRAY):
-			lval = zend_hash_num_elements(Z_ARRVAL_P(op2));
-			ZVAL_LONG(result, Z_DVAL_P(op1) > lval ? 1 : (Z_DVAL_P(op1) < lval ? -1 : 0));
-			return SUCCESS;
-
 		// object comparison
 		default: {
 			int ret;
@@ -1760,7 +1862,7 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 }
 /* }}} */
 
-static int hash_zval_identical_function(const zval **z1, const zval **z2) /* {{{ */
+static zend_compare_result_t hash_zval_identical_function(const zval **z1, const zval **z2) /* {{{ */
 {
 	zval result;
 	TSRMLS_FETCH();
@@ -1771,7 +1873,7 @@ static int hash_zval_identical_function(const zval **z1, const zval **z2) /* {{{
 	 * and non zero otherwise.
 	 */
 	if (is_identical_function(&result, (zval *) *z1, (zval *) *z2 TSRMLS_CC)==FAILURE) {
-		return 1;
+		return IS_NOT_EQUAL;
 	}
 	return !Z_LVAL(result);
 }
@@ -1838,12 +1940,7 @@ ZEND_API int is_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* 
 		return is_identical_function(result, op1, op2 TSRMLS_CC);
 	}
 
-	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
-		ZVAL_BOOL(result, 0);
-	} else {
-		ZVAL_BOOL(result, (Z_LVAL_P(result) == 0));
-	}
-
+	ZVAL_BOOL(result, zend_compare(op1, op2) == IS_EQUAL);
 	return SUCCESS;
 }
 /* }}} */
@@ -1854,36 +1951,21 @@ ZEND_API int is_not_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC)
 		return is_not_identical_function(result, op1, op2 TSRMLS_CC);
 	}
 
-	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
-		ZVAL_BOOL(result, 1);
-	} else {
-		ZVAL_BOOL(result, (Z_LVAL_P(result) != 0));
-	}
-
+	ZVAL_BOOL(result, zend_compare(op1, op2) != IS_EQUAL);
 	return SUCCESS;
 }
 /* }}} */
 
 ZEND_API int is_smaller_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
 {
-	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
-		ZVAL_BOOL(result, 0);
-	} else {
-		ZVAL_BOOL(result, (Z_LVAL_P(result) < 0));
-	}
-
+	ZVAL_BOOL(result, zend_compare(op1, op2) == IS_SMALLER);
 	return SUCCESS;
 }
 /* }}} */
 
 ZEND_API int is_smaller_or_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
 {
-	if (compare_function(result, op1, op2 TSRMLS_CC) == FAILURE) {
-		ZVAL_BOOL(result, 0);
-	} else {
-		ZVAL_BOOL(result, (Z_LVAL_P(result) <= 0));
-	}
-
+	ZVAL_BOOL(result, zend_compare(op1, op2) <= IS_EQUAL);
 	return SUCCESS;
 }
 /* }}} */
@@ -2180,7 +2262,7 @@ ZEND_API int zend_binary_strcmp(const char *s1, uint len1, const char *s2, uint 
 	int retval;
 
 	if (s1 == s2) {
-		return 0;
+		return IS_EQUAL;
 	}
 	retval = memcmp(s1, s2, MIN(len1, len2));
 	if (!retval) {
@@ -2371,12 +2453,7 @@ string_cmp:
 
 static int hash_zval_compare_function(const zval **z1, const zval **z2 TSRMLS_DC) /* {{{ */
 {
-	zval result;
-
-	if (compare_function(&result, (zval *) *z1, (zval *) *z2 TSRMLS_CC)==FAILURE) {
-		return 1;
-	}
-	return Z_LVAL(result);
+	return zend_compare((zval *) *z1, (zval *) *z2 TSRMLS_CC);
 }
 /* }}} */
 

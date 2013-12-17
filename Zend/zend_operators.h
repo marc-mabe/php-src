@@ -371,11 +371,22 @@ ZEND_API void zendi_smart_strcmp(zval *result, zval *s1, zval *s2);
 ZEND_API void zend_compare_symbol_tables(zval *result, HashTable *ht1, HashTable *ht2 TSRMLS_DC);
 ZEND_API void zend_compare_arrays(zval *result, zval *a1, zval *a2 TSRMLS_DC);
 ZEND_API void zend_compare_objects(zval *result, zval *o1, zval *o2 TSRMLS_DC);
+ZEND_API int zend_compare_symbol_tables_i(HashTable *ht1, HashTable *ht2 TSRMLS_DC);
+ZEND_API void zend_compare_symbol_tables(zval *result, HashTable *ht1, HashTable *ht2 TSRMLS_DC);
 
 ZEND_API int zend_atoi(const char *str, int str_len);
 ZEND_API long zend_atol(const char *str, int str_len);
 
 ZEND_API void zend_locale_sprintf_double(zval *op ZEND_FILE_LINE_DC);
+
+typedef enum {
+        IS_SMALLER        = -1,
+        IS_EQUAL          = 0,
+        IS_GREATER        = 1,
+        IS_NOT_EQUAL      = 2
+} zend_compare_result_t;
+typedef zend_compare_result_t (*zend_compare_function_t)(const void *, const void * TSRMLS_DC);
+ZEND_API zend_compare_result_t zend_compare(zval *op1, zval *op2 TSRMLS_DC);
 END_EXTERN_C()
 
 #define convert_to_ex_master(ppzv, lower_type, upper_type)	\
