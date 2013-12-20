@@ -1929,17 +1929,12 @@ ZEND_API int is_not_identical_function(zval *result, zval *op1, zval *op2 TSRMLS
 	} else {
 		Z_LVAL_P(result) = !Z_LVAL_P(result);
 	}
-
 	return SUCCESS;
 }
 /* }}} */
 
 ZEND_API int is_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
 {
-	if (Z_TYPE_P(op1) == Z_TYPE_P(op2)) {
-		return is_identical_function(result, op1, op2 TSRMLS_CC);
-	}
-
 	ZVAL_BOOL(result, zend_compare(op1, op2) == IS_EQUAL);
 	return SUCCESS;
 }
@@ -1947,10 +1942,6 @@ ZEND_API int is_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* 
 
 ZEND_API int is_not_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
 {
-	if (Z_TYPE_P(op1) == Z_TYPE_P(op2)) {
-		return is_not_identical_function(result, op1, op2 TSRMLS_CC);
-	}
-
 	ZVAL_BOOL(result, zend_compare(op1, op2) != IS_EQUAL);
 	return SUCCESS;
 }
@@ -2459,13 +2450,13 @@ static int hash_zval_compare_function(const zval **z1, const zval **z2 TSRMLS_DC
 
 ZEND_API int zend_compare_symbol_tables_i(HashTable *ht1, HashTable *ht2 TSRMLS_DC) /* {{{ */
 {
-	return ht1 == ht2 ? 0 : zend_hash_compare(ht1, ht2, (compare_func_t) hash_zval_compare_function, 0 TSRMLS_CC);
+	return ht1 == ht2 ? 0 : zend_hash_compare(ht1, ht2, (compare_func_t) hash_zval_compare_function, 1 TSRMLS_CC);
 }
 /* }}} */
 
 ZEND_API void zend_compare_symbol_tables(zval *result, HashTable *ht1, HashTable *ht2 TSRMLS_DC) /* {{{ */
 {
-	ZVAL_LONG(result, ht1 == ht2 ? 0 : zend_hash_compare(ht1, ht2, (compare_func_t) hash_zval_compare_function, 0 TSRMLS_CC));
+	ZVAL_LONG(result, ht1 == ht2 ? 0 : zend_hash_compare(ht1, ht2, (compare_func_t) hash_zval_compare_function, 1 TSRMLS_CC));
 }
 /* }}} */
 
