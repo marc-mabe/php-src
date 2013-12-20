@@ -73,23 +73,29 @@ Comparing strings:
 Comparing arrays:
 	- an array will be identical if all elements (keys and values) are identical
 	- ordering will be done using the number of elements of the arrays
+
 RULES;
 
 error_reporting(-1);
 ini_set('display_errors', 1);
 
 $iterations = 100;
-$t0 = 0;
+$t0         = 0;
+$types      = array_map('strtolower', array_slice($_SERVER['argv'], 1));
 
 function cmp($v1, $v2, $expect) {
-    global $iterations;
+    global $iterations, $types;
+
+    if ($types && !in_array(strtolower(gettype($v1)), $types) && !in_array(strtolower(gettype($v2)), $types)) {
+        return;
+    }
 
     // equal
     $t1 = microtime(true);
     for ($i=0; $i<$iterations; ++$i) $rs = ($v1 == $v2);
     $t2 = microtime(true);
     result('==', $v1, $v2, ($expect === 0), $rs, $t2-$t1);
-    
+
     // not equal
     $t1 = microtime(true);
     for ($i=0; $i<$iterations; ++$i) $rs = ($v1 != $v2);
