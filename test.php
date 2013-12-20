@@ -32,22 +32,19 @@ Comparing different types:
 	- null to bool          : handle null as the same as false
 	- null to int/float     : handle null as the same as 0
 	- null to string        : handle null as the same as an empty string
-	- null to array         : handle null as the same as an empty array
+	- null to array         : not comparable
 	- null to resource      : not comparable
 	- null to object        : not comparable
-	- bool to int/float     : handle numbers of 0 as false and all other as true
+	- bool to int/float     : handle 0 as false and all other as true
 	- bool to string        : handle an empty string as false and all other as true
-	- bool to array         : on equality: handle an empty array as false and all other as true
-	                          on ordering: not comparable
-	- bool to resource      : on equality: handle resources as true
-	                          on ordering: not comparable
-	- bool to object        : on equality: handle objects as true
-	                          on ordering: not comparable
-	- int/float to string   : convert string into int/float - not comparable on an invalid number or error
+	- bool to array         : not comparable
+	- bool to resource      : not comparable
+	- bool to object        : not comparable
+	- int/float to string   : convert string to int/float - not comparable on an invalid number or error
 	                          Format for a valid number in base 10: ^[+-]?[0-9]+$
 	                          Format for a valid number in base 16: ^0x[0-9a-fA-F]+$
 	                          Format for a valid float (TODO):      ^[+-]? ... $
-	- int/float to array	: count array entries to compare two numbers
+	- int/float to array	: not comparable
 	- int/float to resource	: not comparable
 	- int/float to object   : not comparable
 	- string to array       : not comparable
