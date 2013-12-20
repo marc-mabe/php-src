@@ -1507,7 +1507,7 @@ static inline void zend_free_obj_get_result(zval *op TSRMLS_DC) /* {{{ */
 }
 /* }}} */
 
-ZEND_API zend_compare_result_t zend_compare(zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
+ZEND_API int zend_compare(zval *op1, zval *op2 TSRMLS_DC) /* {{{ */
 {
 	int ival = 0;
         long lval = 0;
@@ -1862,7 +1862,7 @@ ZEND_API int compare_function(zval *result, zval *op1, zval *op2 TSRMLS_DC) /* {
 }
 /* }}} */
 
-static zend_compare_result_t hash_zval_identical_function(const zval **z1, const zval **z2) /* {{{ */
+static int hash_zval_identical_function(const zval **z1, const zval **z2) /* {{{ */
 {
 	zval result;
 	TSRMLS_FETCH();

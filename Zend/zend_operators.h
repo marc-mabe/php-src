@@ -379,14 +379,11 @@ ZEND_API long zend_atol(const char *str, int str_len);
 
 ZEND_API void zend_locale_sprintf_double(zval *op ZEND_FILE_LINE_DC);
 
-typedef enum {
-        IS_SMALLER        = -1,
-        IS_EQUAL          = 0,
-        IS_GREATER        = 1,
-        IS_NOT_EQUAL      = 2
-} zend_compare_result_t;
-typedef zend_compare_result_t (*zend_compare_function_t)(const void *, const void * TSRMLS_DC);
-ZEND_API zend_compare_result_t zend_compare(zval *op1, zval *op2 TSRMLS_DC);
+#define IS_SMALLER    -1
+#define IS_EQUAL      0
+#define IS_GREATER    1
+#define IS_NOT_EQUAL  2
+ZEND_API int zend_compare(zval *op1, zval *op2 TSRMLS_DC);
 END_EXTERN_C()
 
 #define convert_to_ex_master(ppzv, lower_type, upper_type)	\
