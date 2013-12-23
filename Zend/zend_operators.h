@@ -378,12 +378,6 @@ ZEND_API int zend_atoi(const char *str, int str_len);
 ZEND_API long zend_atol(const char *str, int str_len);
 
 ZEND_API void zend_locale_sprintf_double(zval *op ZEND_FILE_LINE_DC);
-
-#define IS_SMALLER    -1
-#define IS_EQUAL      0
-#define IS_GREATER    1
-#define IS_NOT_EQUAL  2
-ZEND_API int zend_compare(zval *op1, zval *op2 TSRMLS_DC);
 END_EXTERN_C()
 
 #define convert_to_ex_master(ppzv, lower_type, upper_type)	\
@@ -496,6 +490,7 @@ END_EXTERN_C()
 #define Z_TYPE(zval)		(zval).type
 #define Z_TYPE_P(zval_p)	Z_TYPE(*zval_p)
 #define Z_TYPE_PP(zval_pp)	Z_TYPE(**zval_pp)
+#define Z_TYPE_PAIR(t1,t2) 	(((t1) << 4) | (t2))
 
 #if HAVE_SETLOCALE && defined(ZEND_WIN32) && !defined(ZTS) && defined(_MSC_VER) && (_MSC_VER >= 1400)
 /* This is performance improvement of tolower() on Windows and VC2005

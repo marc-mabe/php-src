@@ -149,11 +149,12 @@ ZEND_VM_HANDLER(15, ZEND_IS_IDENTICAL, CONST|TMP|VAR|CV, CONST|TMP|VAR|CV)
 {
 	USE_OPLINE
 	zend_free_op free_op1, free_op2;
+	zval *result = &EX_T(opline->result.var).tmp_var;
 
 	SAVE_OPLINE();
-	is_identical_function(&EX_T(opline->result.var).tmp_var,
+	ZVAL_BOOL(result, zend_is_identical_zval(
 		GET_OP1_ZVAL_PTR(BP_VAR_R),
-		GET_OP2_ZVAL_PTR(BP_VAR_R) TSRMLS_CC);
+		GET_OP2_ZVAL_PTR(BP_VAR_R) TSRMLS_CC));
 	FREE_OP1();
 	FREE_OP2();
 	CHECK_EXCEPTION();
@@ -167,9 +168,9 @@ ZEND_VM_HANDLER(16, ZEND_IS_NOT_IDENTICAL, CONST|TMP|VAR|CV, CONST|TMP|VAR|CV)
 	zval *result = &EX_T(opline->result.var).tmp_var;
 
 	SAVE_OPLINE();
-	is_not_identical_function(result,
+	ZVAL_BOOL(result, !zend_is_identical_zval(
 		GET_OP1_ZVAL_PTR(BP_VAR_R),
-		GET_OP2_ZVAL_PTR(BP_VAR_R) TSRMLS_CC);
+		GET_OP2_ZVAL_PTR(BP_VAR_R) TSRMLS_CC));
 	FREE_OP1();
 	FREE_OP2();
 	CHECK_EXCEPTION();
@@ -183,9 +184,9 @@ ZEND_VM_HANDLER(17, ZEND_IS_EQUAL, CONST|TMP|VAR|CV, CONST|TMP|VAR|CV)
 	zval *result = &EX_T(opline->result.var).tmp_var;
 
 	SAVE_OPLINE();
-	is_equal_function(result,
+	ZVAL_BOOL(result, zend_is_equal_zval(
 		GET_OP1_ZVAL_PTR(BP_VAR_R),
-		GET_OP2_ZVAL_PTR(BP_VAR_R) TSRMLS_CC);
+		GET_OP2_ZVAL_PTR(BP_VAR_R) TSRMLS_CC));
 	FREE_OP1();
 	FREE_OP2();
 	CHECK_EXCEPTION();
@@ -199,9 +200,9 @@ ZEND_VM_HANDLER(18, ZEND_IS_NOT_EQUAL, CONST|TMP|VAR|CV, CONST|TMP|VAR|CV)
 	zval *result = &EX_T(opline->result.var).tmp_var;
 
 	SAVE_OPLINE();
-	is_not_equal_function(result,
+	ZVAL_BOOL(result, !zend_is_equal_zval(
 		GET_OP1_ZVAL_PTR(BP_VAR_R),
-		GET_OP2_ZVAL_PTR(BP_VAR_R) TSRMLS_CC);
+		GET_OP2_ZVAL_PTR(BP_VAR_R) TSRMLS_CC));
 	FREE_OP1();
 	FREE_OP2();
 	CHECK_EXCEPTION();
@@ -215,9 +216,9 @@ ZEND_VM_HANDLER(19, ZEND_IS_SMALLER, CONST|TMP|VAR|CV, CONST|TMP|VAR|CV)
 	zval *result = &EX_T(opline->result.var).tmp_var;
 
 	SAVE_OPLINE();
-	is_smaller_function(result,
+	ZVAL_BOOL(result, zend_is_smaller_zval(
 		GET_OP1_ZVAL_PTR(BP_VAR_R),
-		GET_OP2_ZVAL_PTR(BP_VAR_R) TSRMLS_CC);
+		GET_OP2_ZVAL_PTR(BP_VAR_R) TSRMLS_CC));
 	FREE_OP1();
 	FREE_OP2();
 	CHECK_EXCEPTION();
@@ -231,9 +232,9 @@ ZEND_VM_HANDLER(20, ZEND_IS_SMALLER_OR_EQUAL, CONST|TMP|VAR|CV, CONST|TMP|VAR|CV
 	zval *result = &EX_T(opline->result.var).tmp_var;
 
 	SAVE_OPLINE();
-	is_smaller_or_equal_function(result,
+	ZVAL_BOOL(result, zend_is_smaller_or_equal_zval(
 		GET_OP1_ZVAL_PTR(BP_VAR_R),
-		GET_OP2_ZVAL_PTR(BP_VAR_R) TSRMLS_CC);
+		GET_OP2_ZVAL_PTR(BP_VAR_R) TSRMLS_CC));
 	FREE_OP1();
 	FREE_OP2();
 	CHECK_EXCEPTION();

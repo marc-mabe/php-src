@@ -261,6 +261,10 @@ SOURCE=.\zend_operators.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\zend_cmp.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\zend_ptr_stack.c
 # End Source File
 # Begin Source File

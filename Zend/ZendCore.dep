@@ -140,6 +140,24 @@
 	".\zend_hash.h"\
 	
 
+.\zend_cmp.c : \
+        "..\..\..\program files\microsoft visual studio\vc98\include\basetsd.h"\
+        ".\zend_alloc.h"\
+        ".\zend_compile.h"\
+        ".\zend_config.w32.h"\
+        ".\zend_execute.h"\
+        ".\zend_llist.h"\
+        ".\zend_operators.h"\
+	".\zend_cmp.h"\
+        ".\zend_ptr_stack.h"\
+        ".\zend_stack.h"\
+        ".\zend_variables.h"\
+        ".\zend.h"\
+        ".\zend_errors.h"\
+        ".\zend_globals.h"\
+        ".\zend_hash.h"\
+	
+
 .\zend_ptr_stack.c : \
 	"..\..\..\program files\microsoft visual studio\vc98\include\basetsd.h"\
 	".\zend_alloc.h"\
