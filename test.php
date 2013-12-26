@@ -215,7 +215,6 @@ cmp('+1', '1', -1);
 cmp('+0', '-0', -1);
 cmp('0.99999999999999994', '1', -1);
 cmp('0.99999999999999995', '1', -1);
-
 cmp('123', '123', 0);
 cmp('124', '123', 1);
 cmp('2', '123', 1);
@@ -224,6 +223,7 @@ echo "\nInteger to numeric:\n";
 cmp(1, 1.0, 0);
 cmp(1, '1', 0);
 cmp(1, '1.0', 0);
+cmp((PHP_INT_MAX+1), (string)(PHP_INT_MAX+1), 0);
 cmp(1, 2, -1);
 cmp(1, 1.1, -1);
 cmp(-0, +0.0, 0);
@@ -279,6 +279,5 @@ cmp($rs1, $rs1, 0);
 cmp($rs1, $rs2, false);
 cmp($rs1, (int)$rs1, false);
 cmp($rs1, (float)(int)$rs1, false);
-
 
 printf("\nTotal \t\t\t\t\t\t\ttime = %f\n", $t0);

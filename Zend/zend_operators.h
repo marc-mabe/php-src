@@ -371,8 +371,6 @@ ZEND_API void zendi_smart_strcmp(zval *result, zval *s1, zval *s2);
 ZEND_API void zend_compare_symbol_tables(zval *result, HashTable *ht1, HashTable *ht2 TSRMLS_DC);
 ZEND_API void zend_compare_arrays(zval *result, zval *a1, zval *a2 TSRMLS_DC);
 ZEND_API void zend_compare_objects(zval *result, zval *o1, zval *o2 TSRMLS_DC);
-ZEND_API int zend_compare_symbol_tables_i(HashTable *ht1, HashTable *ht2 TSRMLS_DC);
-ZEND_API void zend_compare_symbol_tables(zval *result, HashTable *ht1, HashTable *ht2 TSRMLS_DC);
 
 ZEND_API int zend_atoi(const char *str, int str_len);
 ZEND_API long zend_atol(const char *str, int str_len);
@@ -490,7 +488,6 @@ END_EXTERN_C()
 #define Z_TYPE(zval)		(zval).type
 #define Z_TYPE_P(zval_p)	Z_TYPE(*zval_p)
 #define Z_TYPE_PP(zval_pp)	Z_TYPE(**zval_pp)
-#define Z_TYPE_PAIR(t1,t2) 	(((t1) << 4) | (t2))
 
 #if HAVE_SETLOCALE && defined(ZEND_WIN32) && !defined(ZTS) && defined(_MSC_VER) && (_MSC_VER >= 1400)
 /* This is performance improvement of tolower() on Windows and VC2005
@@ -884,47 +881,39 @@ static zend_always_inline int fast_mod_function(zval *result, zval *op1, zval *o
 
 static zend_always_inline int fast_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC)
 {
-	if (EXPECTED(Z_TYPE_P(op1) == Z_TYPE_P(op2))) {
-		is_identical_function(result, op1, op2 TSRMLS_CC);
-		return Z_LVAL_P(result) == 1;
-	}
-
 	if (EXPECTED(Z_TYPE_P(op1) == IS_LONG)) {
-		if (EXPECTED(Z_TYPE_P(op2) == IS_DOUBLE)) {
+		if (EXPECTED(Z_TYPE_P(op2) == IS_LONG)) {
+			return Z_LVAL_P(op1) == Z_LVAL_P(op2);
+		} else if (EXPECTED(Z_TYPE_P(op2) == IS_DOUBLE)) {
 			return ((double)Z_LVAL_P(op1)) == Z_DVAL_P(op2);
 		}
 	} else if (EXPECTED(Z_TYPE_P(op1) == IS_DOUBLE)) {
-		if (EXPECTED(Z_TYPE_P(op2) == IS_LONG)) {
+		if (EXPECTED(Z_TYPE_P(op2) == IS_DOUBLE)) {
+			return Z_DVAL_P(op1) == Z_DVAL_P(op2);
+		} else if (EXPECTED(Z_TYPE_P(op2) == IS_LONG)) {
 			return Z_DVAL_P(op1) == ((double)Z_LVAL_P(op2));
 		}
 	}
-
-	if (UNEXPECTED(compare_function(result, op1, op2 TSRMLS_CC) == FAILURE)) {
-		return 0;
-	}
+	compare_function(result, op1, op2 TSRMLS_CC);
 	return Z_LVAL_P(result) == 0;
 }
 
 static zend_always_inline int fast_not_equal_function(zval *result, zval *op1, zval *op2 TSRMLS_DC)
 {
-	if (EXPECTED(Z_TYPE_P(op1) == Z_TYPE_P(op2))) {
-		is_identical_function(result, op1, op2 TSRMLS_CC);
-		return Z_LVAL_P(result) == 0;
-	}
-
 	if (EXPECTED(Z_TYPE_P(op1) == IS_LONG)) {
-		if (EXPECTED(Z_TYPE_P(op2) == IS_DOUBLE)) {
+		if (EXPECTED(Z_TYPE_P(op2) == IS_LONG)) {
+			return Z_LVAL_P(op1) != Z_LVAL_P(op2);
+		} else if (EXPECTED(Z_TYPE_P(op2) == IS_DOUBLE)) {
 			return ((double)Z_LVAL_P(op1)) != Z_DVAL_P(op2);
 		}
 	} else if (EXPECTED(Z_TYPE_P(op1) == IS_DOUBLE)) {
-		if (EXPECTED(Z_TYPE_P(op2) == IS_LONG)) {
+		if (EXPECTED(Z_TYPE_P(op2) == IS_DOUBLE)) {
+			return Z_DVAL_P(op1) != Z_DVAL_P(op2);
+		} else if (EXPECTED(Z_TYPE_P(op2) == IS_LONG)) {
 			return Z_DVAL_P(op1) != ((double)Z_LVAL_P(op2));
 		}
 	}
-
-	if (UNEXPECTED(compare_function(result, op1, op2 TSRMLS_CC) == FAILURE)) {
-		return 1;
-	}
+	compare_function(result, op1, op2 TSRMLS_CC);
 	return Z_LVAL_P(result) != 0;
 }
 
@@ -943,10 +932,7 @@ static zend_always_inline int fast_is_smaller_function(zval *result, zval *op1, 
 			return Z_DVAL_P(op1) < ((double)Z_LVAL_P(op2));
 		}
 	}
-
-	if (UNEXPECTED(compare_function(result, op1, op2 TSRMLS_CC) == FAILURE)) {
-		return 0;
-	}
+	compare_function(result, op1, op2 TSRMLS_CC);
 	return Z_LVAL_P(result) < 0;
 }
 
@@ -965,10 +951,7 @@ static zend_always_inline int fast_is_smaller_or_equal_function(zval *result, zv
 			return Z_DVAL_P(op1) <= ((double)Z_LVAL_P(op2));
 		}
 	}
-
-	if (UNEXPECTED(compare_function(result, op1, op2 TSRMLS_CC) == FAILURE)) {
-		return 0;
-	}
+	compare_function(result, op1, op2 TSRMLS_CC);
 	return Z_LVAL_P(result) <= 0;
 }
 

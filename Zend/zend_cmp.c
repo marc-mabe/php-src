@@ -27,9 +27,56 @@
 #include "zend_globals.h"
 #include "zend_list.h"
 #include "zend_API.h"
-// #include "zend_strtod.h"
-// #include "zend_exceptions.h"
-// #include "zend_closures.h"
+
+static inline zend_uchar strton(const char *str, int length, long *lval, double *dval)
+{
+	errno = 0;
+	int base = 10;
+	char *end = 0;
+	const char *str_in = str;
+
+	/* An empty string or a string beginning with a whitespace is not a valid nummber */
+	/* strto* skips beginning whitespaces */
+	/* This is much faster than the isspace() function */
+	if (!length || *str == ' ' || *str == '\t' || *str == '\n' || *str == '\r' || *str == '\v' || *str == '\f') {
+		return 0;
+	}
+
+	if (length > 2 && *str == '0' && (str[1] == 'x' || str[1] == 'X')) {
+		base = 16;
+		str += 2;
+	}
+
+        if (lval) {
+                *lval = strtol(str, &end, base);
+		if (!errno) {
+			if (*end) {
+				/* allow leading ".0*" */
+				long max = (long)str_in + length;
+				if (*end == '.') {
+					end++;
+					while (*end == '0' && (long)end < max) {
+						end++;
+					}
+					if ((long)end == max) {
+						return IS_LONG;
+					}
+				}
+			} else {
+				return IS_LONG;
+			}
+		}
+        }
+
+	if (dval) {
+		*dval = strtod(str, &end);
+		if (!*end) {
+			return IS_DOUBLE;
+		}
+	}
+
+	return FAILURE;
+}
 
 /* {{{ */
 static inline void zend_free_obj_get_result(zval *op TSRMLS_DC)
@@ -61,79 +108,79 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
         zval zend_val;
         zval *op_free;
 
-        switch (Z_TYPE_PAIR(Z_TYPE_P(op1), Z_TYPE_P(op2))) {
-                case Z_TYPE_PAIR(IS_NULL, IS_NULL):
+        switch (TYPE_PAIR(Z_TYPE_P(op1), Z_TYPE_P(op2))) {
+                case TYPE_PAIR(IS_NULL, IS_NULL):
                         return IS_EQUAL;
 
-                case Z_TYPE_PAIR(IS_BOOL, IS_BOOL):
-                case Z_TYPE_PAIR(IS_LONG, IS_LONG):
+                case TYPE_PAIR(IS_BOOL, IS_BOOL):
+                case TYPE_PAIR(IS_LONG, IS_LONG):
                         return Z_LVAL_P(op1) < Z_LVAL_P(op2) ? IS_SMALLER : (Z_LVAL_P(op1) > Z_LVAL_P(op2) ? IS_GREATER : IS_EQUAL);
 
-                case Z_TYPE_PAIR(IS_DOUBLE, IS_DOUBLE):
+                case TYPE_PAIR(IS_DOUBLE, IS_DOUBLE):
                         return Z_DVAL_P(op1) < Z_DVAL_P(op2) ? IS_SMALLER : (Z_DVAL_P(op1) > Z_DVAL_P(op2) ? IS_GREATER : IS_EQUAL);
 
-                case Z_TYPE_PAIR(IS_STRING, IS_STRING):
+                case TYPE_PAIR(IS_STRING, IS_STRING):
 			return zend_cmp_str(Z_STRVAL_P(op1), Z_STRLEN_P(op1), Z_STRVAL_P(op2), Z_STRLEN_P(op2));
 
-                case Z_TYPE_PAIR(IS_ARRAY, IS_ARRAY):
+                case TYPE_PAIR(IS_ARRAY, IS_ARRAY):
 			return zend_cmp_ht(Z_ARRVAL_P(op1), Z_ARRVAL_P(op2));
 
-                case Z_TYPE_PAIR(IS_RESOURCE, IS_RESOURCE):
+                case TYPE_PAIR(IS_RESOURCE, IS_RESOURCE):
                         return Z_RESVAL_P(op1) == Z_RESVAL_P(op2) ? IS_EQUAL : IS_NOT_EQUAL;
 
                 // long <-> double = (double)long <-> double
-                case Z_TYPE_PAIR(IS_DOUBLE, IS_LONG):
+                case TYPE_PAIR(IS_DOUBLE, IS_LONG):
                         dval = (double)Z_LVAL_P(op2);
                         return Z_DVAL_P(op1) < dval ? IS_SMALLER : (Z_DVAL_P(op1) > dval ? IS_GREATER : IS_EQUAL);
 
-                case Z_TYPE_PAIR(IS_LONG, IS_DOUBLE):
+                case TYPE_PAIR(IS_LONG, IS_DOUBLE):
                         dval = (double)Z_LVAL_P(op1);
                         return dval < Z_DVAL_P(op2) ? IS_SMALLER : (dval > Z_DVAL_P(op2) ? IS_GREATER : IS_EQUAL);
 
                 // null <-> long   = 0 <-> long
                 // null <-> double = 0 <-> double
-                case Z_TYPE_PAIR(IS_NULL, IS_LONG):
+                case TYPE_PAIR(IS_NULL, IS_LONG):
                         return 0 < Z_LVAL_P(op2) ? IS_SMALLER : (0 > Z_LVAL_P(op2) ? IS_GREATER : IS_EQUAL);
 
-                case Z_TYPE_PAIR(IS_NULL, IS_DOUBLE):
+                case TYPE_PAIR(IS_NULL, IS_DOUBLE):
                         return 0 < Z_DVAL_P(op2) ? IS_SMALLER : (0 > Z_DVAL_P(op2) ? IS_GREATER : IS_EQUAL);
 
-                case Z_TYPE_PAIR(IS_LONG, IS_NULL):
+                case TYPE_PAIR(IS_LONG, IS_NULL):
                         return Z_LVAL_P(op1) < 0 ? IS_SMALLER : (Z_LVAL_P(op1) > 0 ? IS_GREATER : IS_EQUAL);
 
-                case Z_TYPE_PAIR(IS_DOUBLE, IS_NULL):
+                case TYPE_PAIR(IS_DOUBLE, IS_NULL):
                         return Z_DVAL_P(op1) < 0 ? IS_SMALLER : (Z_DVAL_P(op1) > 0 ? IS_GREATER : IS_EQUAL);
 
                 // null <-> boolean = false <-> boolean
-                case Z_TYPE_PAIR(IS_NULL, IS_BOOL):
+                case TYPE_PAIR(IS_NULL, IS_BOOL):
                         return Z_LVAL_P(op2) ? IS_SMALLER : IS_EQUAL;
 
-                case Z_TYPE_PAIR(IS_BOOL, IS_NULL):
+                case TYPE_PAIR(IS_BOOL, IS_NULL):
                         return Z_LVAL_P(op1) ? IS_GREATER : IS_EQUAL;
 
                 // null <-> string = "" <-> string
-                case Z_TYPE_PAIR(IS_NULL, IS_STRING):
+                case TYPE_PAIR(IS_NULL, IS_STRING):
                         return Z_STRLEN_P(op2) > 0 ? IS_SMALLER : IS_EQUAL;
 
-                case Z_TYPE_PAIR(IS_STRING, IS_NULL):
+                case TYPE_PAIR(IS_STRING, IS_NULL):
                         return Z_STRLEN_P(op1) > 0 ? IS_GREATER : IS_EQUAL;
 
                 // string <-> long   = (long)string <-> long
                 // string <-> double = (double)string <-> double
-                case Z_TYPE_PAIR(IS_STRING, IS_LONG):
-                        if (is_numeric_string(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, NULL, 0) == IS_LONG) {
+                case TYPE_PAIR(IS_STRING, IS_LONG):
+                        if (strton(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, NULL) == IS_LONG) {
                                 return lval < Z_LVAL_P(op2) ? IS_SMALLER : (lval > Z_LVAL_P(op2) ? IS_GREATER : IS_EQUAL);
                         }
                         return IS_NOT_EQUAL;
 
-                case Z_TYPE_PAIR(IS_LONG, IS_STRING):
-                        if (is_numeric_string(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, NULL, 0) == IS_LONG) {
+                case TYPE_PAIR(IS_LONG, IS_STRING):
+                        if (strton(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, NULL) == IS_LONG) {
                                 return Z_LVAL_P(op1) < lval ? IS_SMALLER : (Z_LVAL_P(op1) > lval ? IS_GREATER : IS_EQUAL);
                         }
                         return IS_NOT_EQUAL;
 
-                case Z_TYPE_PAIR(IS_STRING, IS_DOUBLE):
-                        switch (is_numeric_string(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, &dval, 0)) {
+                case TYPE_PAIR(IS_STRING, IS_DOUBLE):
+                        switch (strton(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, &dval)) {
                                 case IS_LONG:
                                         dval = (double)lval;
                                 case IS_DOUBLE:
@@ -141,8 +188,8 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
                         }
                         return IS_NOT_EQUAL;
 
-                case Z_TYPE_PAIR(IS_DOUBLE, IS_STRING):
-                        switch (is_numeric_string(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, &dval, 0)) {
+                case TYPE_PAIR(IS_DOUBLE, IS_STRING):
+                        switch (strton(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, &dval)) {
                                 case IS_LONG:
                                         dval = (double)lval;
                                 case IS_DOUBLE:
@@ -219,7 +266,7 @@ ZEND_API int zend_cmp_str(const char *s1, uint len1, const char *s2, uint len2 T
 
 	retval = memcmp(s1, s2, MIN(len1, len2));
 	if (retval == IS_EQUAL) {
-		return (len1 - len2);
+		return len1 < len2 ? -1 : (len1 > len2 ? IS_GREATER : IS_EQUAL);
 	}
 	return retval;
 }

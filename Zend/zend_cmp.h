@@ -26,6 +26,8 @@
 #define IS_GREATER   1
 #define IS_NOT_EQUAL 2
 
+#define TYPE_PAIR(t1, t2)	(((t1) << 4) | (t2))
+
 ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC);
 ZEND_API int zend_cmp_str(const char *s1, uint len1, const char *s2, uint len2 TSRMLS_DC);
 ZEND_API int zend_cmp_ht(HashTable *ht1, HashTable *ht2 TSRMLS_DC);
