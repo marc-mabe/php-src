@@ -4,6 +4,7 @@ PHP                                                                        NEWS
 
 - DBA:
   . Fixed bug #62490 (dba_delete returns true on missing item (inifile)). (Mike)
+
 - XSL:
   . Fixed bug #64776 (The XSLT extension is not thread safe). (Mike)
 

@@ -387,6 +387,9 @@ static void accel_use_shm_interned_strings(TSRMLS_D)
 {
 	Bucket *p, *q;
 
+	/* empty string */
+	CG(interned_empty_string) = accel_new_interned_string("", sizeof(""), 0 TSRMLS_CC);
+
 	/* function table hash keys */
 	p = CG(function_table)->pListHead;
 	while (p) {
@@ -877,7 +880,7 @@ static inline int do_validate_timestamps(zend_persistent_script *persistent_scri
 	return FAILURE;
 }
 
-static inline int validate_timestamp_and_record(zend_persistent_script *persistent_script, zend_file_handle *file_handle TSRMLS_DC)
+int validate_timestamp_and_record(zend_persistent_script *persistent_script, zend_file_handle *file_handle TSRMLS_DC)
 {
 	if (ZCG(accel_directives).revalidate_freq &&
 	    (persistent_script->dynamic_members.revalidate >= ZCSG(revalidate_at))) {

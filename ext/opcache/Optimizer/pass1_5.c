@@ -274,7 +274,11 @@ if (ZEND_OPTIMIZER_PASS_1 & OPTIMIZATION_LEVEL) {
 								Z_STRVAL(op_array->literals[opline->op1.constant + 1].constant), 
 								Z_STRLEN(op_array->literals[opline->op1.constant].constant) + 1, 
 								Z_HASH_P(&op_array->literals[opline->op1.constant + 1].constant),
-								(void **)&pce) == FAILURE) {
+								(void **)&pce) == FAILURE ||
+								((*pce)->type == ZEND_INTERNAL_CLASS &&
+								 (*pce)->info.internal.module->type != MODULE_PERSISTENT) ||
+								((*pce)->type == ZEND_USER_CLASS &&
+								 ZEND_CE_FILENAME(*pce) != op_array->filename)) {
 							break;
 						}
 					}
@@ -383,9 +387,11 @@ if (ZEND_OPTIMIZER_PASS_1 & OPTIMIZATION_LEVEL) {
 					zend_module_entry *m;
 					char *lc_name = zend_str_tolower_dup(
 							Z_STRVAL(ZEND_OP1_LITERAL(opline - 1)), Z_STRLEN(ZEND_OP1_LITERAL(opline - 1)));
+					int found = zend_hash_find(&module_registry,
+							lc_name, Z_STRLEN(ZEND_OP1_LITERAL(opline - 1)) + 1, (void *)&m) == SUCCESS;
 
-					if (zend_hash_find(&module_registry,
-							lc_name, Z_STRLEN(ZEND_OP1_LITERAL(opline - 1)) + 1, (void *)&m) == FAILURE) {
+					efree(lc_name);
+					if (!found) {
 						if (!PG(enable_dl)) {
 							break;
 						} else {
@@ -405,7 +411,6 @@ if (ZEND_OPTIMIZER_PASS_1 & OPTIMIZATION_LEVEL) {
 						literal_dtor(&ZEND_OP1_LITERAL(opline));
 						MAKE_NOP(opline);
 					}
-					efree(lc_name);
 				} else if (Z_STRLEN(ZEND_OP1_LITERAL(opline)) == sizeof("defined")-1 &&
 					!memcmp(Z_STRVAL(ZEND_OP1_LITERAL(opline)),
 						"defined", sizeof("defined")-1)) {
