@@ -32,8 +32,11 @@ static inline zend_uchar strton(const char *str, int length, long *lval, double 
 {
 	errno = 0;
 	int base = 10;
-	char *end = 0;
-	const char *str_in = str;
+	const char *str_start = str;
+	const char *str_end = str_start + length;
+	char *str_stop;
+	long lval_local;
+	double dval_local;
 
 	/* An empty string or a string beginning with a whitespace is not a valid nummber */
 	/* strto* skips beginning whitespaces */
@@ -42,36 +45,43 @@ static inline zend_uchar strton(const char *str, int length, long *lval, double 
 		return 0;
 	}
 
+	/* hex numbers */
 	if (length > 2 && *str == '0' && (str[1] == 'x' || str[1] == 'X')) {
 		base = 16;
 		str += 2;
+	/* octal number */
+	} else if (length > 1 && *str == '0') {
+		base = 8;
+		str += 1;
 	}
 
-        if (lval) {
-                *lval = strtol(str, &end, base);
-		if (!errno) {
-			if (*end) {
-				/* allow leading ".0*" */
-				long max = (long)str_in + length;
-				if (*end == '.') {
-					end++;
-					while (*end == '0' && (long)end < max) {
-						end++;
-					}
-					if ((long)end == max) {
-						return IS_LONG;
-					}
-				}
-			} else {
+	/* parse integer numbers */
+	/* TODO: return as double if out of range */
+	lval_local = strtol(str, &str_stop, base);
+	if (!*str_stop && !errno) {
+		if (lval) {
+			*lval = (long)lval_local;
+			return IS_LONG;
+		}
+		if (dval) {
+			*dval = (double)lval_local;
+			return IS_DOUBLE;
+		}
+
+	/* parse real numbers (requires base of 10) */
+	} else if (base == 10) {
+		str_stop = NULL;
+		dval_local = strtod(str, &str_stop);
+		if (!*str_stop) {
+			if (dval) {
+				*dval = dval_local;
+				return IS_DOUBLE;
+			}
+			/* if no dval but lval was given - check if it's possible to store as lval */
+			if (lval && dval_local < LONG_MAX && dval_local > LONG_MIN && fmod(dval_local, 1) == 0) {
+				*lval = (long)dval_local;
 				return IS_LONG;
 			}
-		}
-        }
-
-	if (dval) {
-		*dval = strtod(str, &end);
-		if (!*end) {
-			return IS_DOUBLE;
 		}
 	}
 
