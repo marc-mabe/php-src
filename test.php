@@ -152,6 +152,9 @@ function fmt($var) {
                 '\\\\', '\0', '\t', '\n', '\r'
             ), var_export($var, true));
         case 'double':
+            if (is_nan($var)) {
+                return 'NaN';
+            }
             $ret = var_export($var, true);
             return (strpos($ret, '.') === false) ? $ret . '.0' : $ret;
         case 'int':
@@ -201,25 +204,17 @@ cmp(' 1', '1', -1);
 cmp(' 1', 1, false);
 cmp("\t1", '1', -1);
 cmp("\t1", 1, false);
-cmp("\01", '1', -1);
-cmp("\01", 1, false);
 
 echo "\nString (numeric) to numeric:\n";
 cmp('1.1', 1.1, 0);
 cmp('1.1000000000000001', 1.1, 0);
 
 cmp('2e2', '200', 1);
-cmp('2E2', '200', 1);
-cmp('2e2', 200, 0);
 cmp('2E2', 200, 0);
-cmp('2e3', 200, 1);
-cmp('2e2', 200.0, 0);
 cmp('2E2', 200.0, 0);
 cmp('2e3', 200.0, 1);
 
 cmp('2e-2', '0.02', 1);
-cmp('2E-2', '0.02', 1);
-cmp('2e-2', 0.02, 0);
 cmp('2E-2', 0.02, 0);
 cmp('2e-3', 0.02, -1);
 
@@ -230,6 +225,13 @@ cmp('0.99999999999999995', '1', -1);
 cmp('123', '123', 0);
 cmp('124', '123', 1);
 cmp('2', '123', 1);
+
+echo "\nNaN:\n";
+cmp(NAN, NAN, 0);
+cmp('a', NAN, 0);
+cmp('1', NAN, false);
+cmp(1, NAN, false);
+cmp(1.1, NAN, false);
 
 echo "\nInteger to numeric:\n";
 cmp(1, 1.0, 0);
