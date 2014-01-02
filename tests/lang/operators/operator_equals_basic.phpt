@@ -3,22 +3,22 @@ Test == operator : different types
 --FILE--
 <?php
 
-$valid_true = array(1, "1", "true", 1.0, array(1));
+$valid_true = array(1, "1", "true", 1.0, array(NULL));
 $valid_false = array(0, "", 0.0, array(), NULL);
 
 $int1 = 679;
 $int2 = -67835;
-$valid_int1 = array("679", "679abc", " 679", "679  ", 679.0, 6.79E2, "+679", +679);
-$valid_int2 = array("-67835", "-67835abc", " -67835", "-67835  ", -67835.000, -6.7835E4);
-$invalid_int1 = array("6 7 9", "6y79", 678);
-$invalid_int2 = array("- 67835", "-67,835", "-67 835", "-678y35", -76834);
+$valid_int1 = array("679", 679.0, 6.79E2, "+679", +679);
+$valid_int2 = array("-67835", -67835.000, -6.7835E4);
+$invalid_int1 = array("679abc", " 679", "679  ", "6 7 9", "6y79", 678);
+$invalid_int2 = array("- 67835", "-67835abc", " -67835", "-67835  ", "-67,835", "-67 835", "-678y35", -76834);
 
 $float1 = 57385.45835;
 $float2 = -67345.76567;
-$valid_float1 = array("57385.45835",  "57385.45835aaa", "  57385.45835", 5.738545835e4);
-$valid_float2 = array("-67345.76567", "-67345.76567aaa", "  -67345.76567", -6.734576567E4);
-$invalid_float1 = array("57385. 45835",  "57,385.45835", 57385.45834, 5.738545834e4);
-$invalid_float2 = array("- 67345.76567", "-67,345.76567", -67345.76566, -6.734576566E4);
+$valid_float1 = array("57385.45835", 5.738545835e4);
+$valid_float2 = array("-67345.76567", "-6.734576567E4", -6.734576567E4);
+$invalid_float1 = array("57385. 45835", "57385.45835aaa", "  57385.45835", "57,385.45835", 57385.45834, 5.738545834e4);
+$invalid_float2 = array("- 67345.76567", "-67345.76567aaa", "  -67345.76567", "-67,345.76567", -67345.76566, -6.734576566E4);
 
 
 $toCompare = array(
@@ -39,8 +39,7 @@ for ($i = 0; $i < count($toCompare); $i +=3) {
    foreach($valid_compares as $compareVal) {
       if ($typeToTest == $compareVal) {
          // do nothing
-      }
-      else {
+      } else {
          echo "FAILED: '$typeToTest' != '$compareVal'\n";
          $failed = true;
       }

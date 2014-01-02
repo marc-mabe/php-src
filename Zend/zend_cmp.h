@@ -32,6 +32,7 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC);
 ZEND_API int zend_cmp_str(const char *s1, uint len1, const char *s2, uint len2 TSRMLS_DC);
 ZEND_API int zend_cmp_ht(HashTable *ht1, HashTable *ht2 TSRMLS_DC);
 
+ZEND_API int zend_is_true_zval(zval *op TSRMLS_DC);
 ZEND_API int zend_is_identical_zval(zval *op1, zval *op2 TSRMLS_DC);
 ZEND_API int zend_is_identical_str(const char *s1, uint len1, const char *s2, uint len2 TSRMLS_DC);
 ZEND_API int zend_is_identical_ht(HashTable *ht1, HashTable *ht2 TSRMLS_DC);

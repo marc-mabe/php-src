@@ -2564,8 +2564,7 @@ static int ZEND_FASTCALL  ZEND_BOOL_SPEC_CONST_HANDLER(ZEND_OPCODE_HANDLER_ARGS)
 	zval *retval = &EX_T(opline->result.var).tmp_var;
 
 	SAVE_OPLINE();
-	/* PHP 3.0 returned "" for false and 1 for true, here we use 0 and 1 for now */
-	ZVAL_BOOL(retval, i_zend_is_true(opline->op1.zv TSRMLS_CC));
+	ZVAL_BOOL(retval, zend_is_true_zval(opline->op1.zv TSRMLS_CC));
 
 	CHECK_EXCEPTION();
 	ZEND_VM_NEXT_OPCODE();
@@ -7849,8 +7848,7 @@ static int ZEND_FASTCALL  ZEND_BOOL_SPEC_TMP_HANDLER(ZEND_OPCODE_HANDLER_ARGS)
 	zval *retval = &EX_T(opline->result.var).tmp_var;
 
 	SAVE_OPLINE();
-	/* PHP 3.0 returned "" for false and 1 for true, here we use 0 and 1 for now */
-	ZVAL_BOOL(retval, i_zend_is_true(_get_zval_ptr_tmp(opline->op1.var, execute_data, &free_op1 TSRMLS_CC) TSRMLS_CC));
+	ZVAL_BOOL(retval, zend_is_true_zval(_get_zval_ptr_tmp(opline->op1.var, execute_data, &free_op1 TSRMLS_CC) TSRMLS_CC));
 	zval_dtor(free_op1.var);
 
 	CHECK_EXCEPTION();
@@ -13136,8 +13134,7 @@ static int ZEND_FASTCALL  ZEND_BOOL_SPEC_VAR_HANDLER(ZEND_OPCODE_HANDLER_ARGS)
 	zval *retval = &EX_T(opline->result.var).tmp_var;
 
 	SAVE_OPLINE();
-	/* PHP 3.0 returned "" for false and 1 for true, here we use 0 and 1 for now */
-	ZVAL_BOOL(retval, i_zend_is_true(_get_zval_ptr_var(opline->op1.var, execute_data, &free_op1 TSRMLS_CC) TSRMLS_CC));
+	ZVAL_BOOL(retval, zend_is_true_zval(_get_zval_ptr_var(opline->op1.var, execute_data, &free_op1 TSRMLS_CC) TSRMLS_CC));
 	zval_ptr_dtor_nogc(&free_op1.var);
 
 	CHECK_EXCEPTION();
@@ -30611,8 +30608,7 @@ static int ZEND_FASTCALL  ZEND_BOOL_SPEC_CV_HANDLER(ZEND_OPCODE_HANDLER_ARGS)
 	zval *retval = &EX_T(opline->result.var).tmp_var;
 
 	SAVE_OPLINE();
-	/* PHP 3.0 returned "" for false and 1 for true, here we use 0 and 1 for now */
-	ZVAL_BOOL(retval, i_zend_is_true(_get_zval_ptr_cv_BP_VAR_R(execute_data, opline->op1.var TSRMLS_CC) TSRMLS_CC));
+	ZVAL_BOOL(retval, zend_is_true_zval(_get_zval_ptr_cv_BP_VAR_R(execute_data, opline->op1.var TSRMLS_CC) TSRMLS_CC));
 
 	CHECK_EXCEPTION();
 	ZEND_VM_NEXT_OPCODE();

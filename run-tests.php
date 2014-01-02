@@ -534,6 +534,8 @@ if (isset($argc) && $argc > 1) {
 
 			switch($switch) {
 				case 'r':
+					$test_files[] = $argv[++$i];
+					break;
 				case 'l':
 					$test_list = file($argv[++$i]);
 					if ($test_list) {

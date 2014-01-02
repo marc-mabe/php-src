@@ -294,4 +294,13 @@ cmp($rs1, $rs2, false);
 cmp($rs1, (int)$rs1, false);
 cmp($rs1, (float)(int)$rs1, false);
 
+
+echo "\nBoolean:\n";
+cmp(true, true, 0);
+cmp(true, false, false);
+cmp(2, true, 0);
+cmp(0, true, false);
+cmp(false, 0, 0);
+cmp(false, 1, false);
+
 printf("\nTotal \t\t\t\t\t\t\ttime = %f\n", $t0);

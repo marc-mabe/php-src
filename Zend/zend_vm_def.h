@@ -3301,8 +3301,7 @@ ZEND_VM_HANDLER(52, ZEND_BOOL, CONST|TMP|VAR|CV, ANY)
 	zval *retval = &EX_T(opline->result.var).tmp_var;
 
 	SAVE_OPLINE();
-	/* PHP 3.0 returned "" for false and 1 for true, here we use 0 and 1 for now */
-	ZVAL_BOOL(retval, i_zend_is_true(GET_OP1_ZVAL_PTR(BP_VAR_R) TSRMLS_CC));
+	ZVAL_BOOL(retval, zend_is_true_zval(GET_OP1_ZVAL_PTR(BP_VAR_R) TSRMLS_CC));
 	FREE_OP1();
 
 	CHECK_EXCEPTION();
