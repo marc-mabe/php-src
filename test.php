@@ -28,48 +28,46 @@ Comparison rules:
 		- true: a<=b, b>a, b>=a, a!==b, b!==a, a!=b, b!=a
 		- false: a>b, a>=b, b<a, b<=a, a===b, b===a, a==b, b==a
 
-Comparing different types:
+Loose type comparison:
 	- null to bool          : handle null as the same as false
 	- null to int/float     : handle null as the same as 0
 	- null to string        : handle null as the same as an empty string
-	- null to array         : not comparable
-	- null to resource      : not comparable
-	- null to object        : not comparable
+	- null to array         : handle an empty array as the same as null else the array is greater
+	- bool to bool		: false is smaller then true
 	- bool to int/float     : handle 0 as false and all other as true
 	- bool to string        : handle an empty string as false and all other as true
-	- bool to array         : not comparable
-	- bool to resource      : not comparable
-	- bool to object        : not comparable
-	- int/float to string   : convert string to int/float - not comparable on an invalid number or error
-	                          Format for a valid number in base 10: ^[+-]?[0-9]+$
-	                          Format for a valid number in base 16: ^0x[0-9a-fA-F]+$
-	                          Format for a valid float (TODO):      ^[+-]? ... $
-	- int/float to array	: not comparable
-	- int/float to resource	: not comparable
-	- int/float to object   : not comparable
-	- string to array       : not comparable
-	- string to resource    : not comparable
-	- string to object      : not comparable
-	- array to resource     : not comparable
-	- array to object       : not comparable
-	- resource to object    : not comparable
+	- bool to array         : handle an empty array as false and all other as true
+	- int/float to string   : convert string to int/float
+		- handle an invalid number as the same as NaN
+		- an empty string will be invalid
+		- any invalid character will be invalid including beginning whitespaces
+		- allow hex values beginning with "0x" followed by at least one of 0-9, a-f, A-F
+		- allow octal values beginning with "0" fllowed by at least one of 0-7
+		- handle all others as decimal:
+			- allow one optional sign "-" and "+" (default)
+			- allow one "." as decimal separator
+			- allow the decimal separator as the first character after the optional sign
+			- allow "e" and "E" as exponent separator followed by at least one of 0-9
+	- int/float to array	: count the number of array elements to compare to the number
+	- string to array       : handle an empty string and an empty array as equal else false
+	- array to array	:
+		- compare the length of the arrays
+		- compare all keys and values using loose type comparison
+		- compare all elements in the same order as they are
+		
+	- object to x           :
+		- if possible use comparison table of the left object
+		- else if possible use comparison table of the right object
+		- else if possible compare the object to type x
+	- All other will be the same as strict comparison
 
-Comparing booleans:
-	- TRUE === TRUE, FALSE === FALSE, TRUE !== FALSE, TRUE > FALSE
-
-Comparing floats:
+Specials on floating point numbers:
 	- +0 and -0 will be identical
+	- NaN and NaN will be identical
+	- +Inf and +Inf will be identical
 	- +Inf will be the highest possible value
+	- -Inf and -Inf will be identical
 	- -Inf will be the lowest possible value
-	- NaN is not comparable expect for NaN
-
-Comparing strings:
-	- string are identical if they are binary identical
-	- ordering will be done on byte sequence
-
-Comparing arrays:
-	- an array will be identical if all elements (keys and values) are identical
-	- ordering will be done using the number of elements of the arrays
 
 RULES;
 
@@ -92,36 +90,32 @@ function cmp($v1, $v2, $expect) {
     for ($i=0; $i<$iterations; ++$i) $rs = ($v1 == $v2);
     $t2 = microtime(true);
     result('==', $v1, $v2, ($expect === 0), $rs, $t2-$t1);
+    if ($v1 !== $v2) {
+        result('==', $v2, $v1, ($expect === 0), $rs, $t2-$t1); // reverse
+    }
 
     // not equal
     $t1 = microtime(true);
     for ($i=0; $i<$iterations; ++$i) $rs = ($v1 != $v2);
     $t2 = microtime(true);
     result('!=', $v1, $v2, ($expect !== 0), $rs, $t2-$t1);
+    if ($v1 !== $v2) {
+        result('!=', $v2, $v1, ($expect !== 0), $rs, $t2-$t1); // reverse
+    }
 
-    // lower
+    // lower / greater
     $t1 = microtime(true);
     for ($i=0; $i<$iterations; ++$i) $rs = ($v1 < $v2);
     $t2 = microtime(true);
     result('<', $v1, $v2, ($expect === -1), $rs, $t2-$t1);
+    result('>', $v2, $v1, ($expect === -1), $rs, $t2-$t1); // reverse
 
-    // lower or equal
+    // lower or equal / grreater or equaö
     $t1 = microtime(true);
     for ($i=0; $i<$iterations; ++$i) $rs = ($v1 <= $v2);
     $t2 = microtime(true);
     result('<=', $v1, $v2, ($expect === -1 || $expect === 0), $rs, $t2-$t1);
-
-    // greater
-    $t1 = microtime(true);
-    for ($i=0; $i<$iterations; ++$i) $rs = ($v1 > $v2);
-    $t2 = microtime(true);
-    result('>', $v1, $v2, ($expect === 1), $rs, $t2-$t1);
-
-    // greater or equal
-    $t1 = microtime(true);
-    for ($i=0; $i<$iterations; ++$i) $rs = ($v1 >= $v2);
-    $t2 = microtime(true);
-    result('>=', $v1, $v2, ($expect === 1 || $expect === 0), $rs, $t2-$t1);
+    result('>=', $v2, $v1, ($expect === -1 || $expect === 0), $rs, $t2-$t1); // reverse
 }
 
 function result($op, $v1, $v2, $expectedRs, $rs, $time) {
@@ -154,6 +148,10 @@ function fmt($var) {
         case 'double':
             if (is_nan($var)) {
                 return 'NaN';
+            } else if ($var === +INF) {
+                return '+Inf';
+            } else if ($var === -INF) {
+                return '-Inf';
             }
             $ret = var_export($var, true);
             return (strpos($ret, '.') === false) ? $ret . '.0' : $ret;
@@ -226,12 +224,21 @@ cmp('123', '123', 0);
 cmp('124', '123', 1);
 cmp('2', '123', 1);
 
-echo "\nNaN:\n";
+echo "\nFloat:\n";
+cmp(+0, -0, 0);
 cmp(NAN, NAN, 0);
+cmp(+INF, +INF, 0);
+cmp(-INF, -INF, 0);
+cmp(1.1, 1.1000000000000001, 0);
+cmp(1.1, 1.1000000000000002, -1);
+cmp(+INF, -INF, 1);
+cmp(+INF, 1e22, 1);
+cmp(-INF, -1E22, -1);
 cmp('a', NAN, 0);
 cmp('1', NAN, false);
 cmp(1, NAN, false);
 cmp(1.1, NAN, false);
+cmp(INF, NAN, false);
 
 echo "\nInteger to numeric:\n";
 cmp(1, 1.0, 0);
@@ -272,18 +279,18 @@ cmp(array(1), array(2), -1);
 cmp(array(1), array(), 1);
 cmp(array(1), array(2), -1);
 cmp(array('1'), array(1), 0);
-cmp(array(), null, false);
-cmp(array(1), null, false);
-cmp(array(), false, false);
+cmp(array(), null, 0);
+cmp(array(1), null, 1);
+cmp(array(), false, 0);
 cmp(array(1), false, false);
 cmp(array(), true, false);
-cmp(array(1), true, false);
-cmp(array(1,2), true, false);
-cmp(array(), 0, false);
-cmp(array(1), 0, false);
-cmp(array(), 1, false);
-cmp(array(1), 1, false);
-cmp(array(1), 2, false);
+cmp(array(1), true, 0);
+cmp(array(1,2), true, 0);
+cmp(array(), 0, 0);
+cmp(array(1), 0, 1);
+cmp(array(), 1, -1);
+cmp(array(1), 1, 0);
+cmp(array(1), 2, -1);
 
 
 echo "\nResource comparison:\n";
@@ -297,7 +304,7 @@ cmp($rs1, (float)(int)$rs1, false);
 
 echo "\nBoolean:\n";
 cmp(true, true, 0);
-cmp(true, false, false);
+cmp(true, false, 1);
 cmp(2, true, 0);
 cmp(0, true, false);
 cmp(false, 0, 0);
