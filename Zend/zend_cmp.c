@@ -112,25 +112,23 @@ static int hash_cmp_zval(const zval **z1, const zval **z2)
 /* {{{ */
 ZEND_API int zend_is_true_zval(zval *op TSRMLS_DC)
 {
-	int result = 0;
-	zval *tmp;
-
 	switch (Z_TYPE_P(op)) {
+		case IS_NULL:
+			return 1;
 		case IS_BOOL:
 		case IS_LONG:
 		case IS_RESOURCE:
-			result = Z_LVAL_P(op) ? 1 : 0;
-			break;
+			return Z_LVAL_P(op) ? 1 : 0;
 		case IS_DOUBLE:
-			result = Z_DVAL_P(op) ? 1 : 0;
-			break;
+			return Z_DVAL_P(op) ? 1 : 0;
 		case IS_STRING:
-			result = Z_STRLEN_P(op) > 0;
-			break;
+			return Z_STRLEN_P(op) > 0;
 		case IS_ARRAY:
-			result = zend_hash_num_elements(Z_ARRVAL_P(op)) > 0;
-			break;
-		case IS_OBJECT:
+			return zend_hash_num_elements(Z_ARRVAL_P(op)) > 0;
+		case IS_OBJECT: {
+			int result = 1;
+			zval *tmp;
+
 			if (IS_ZEND_STD_OBJECT(*op)) {
 				if (Z_OBJ_HT_P(op)->cast_object) {
 					if (Z_OBJ_HT_P(op)->cast_object(op, tmp, IS_BOOL TSRMLS_CC) == SUCCESS) {
@@ -148,9 +146,10 @@ ZEND_API int zend_is_true_zval(zval *op TSRMLS_DC)
 					}
 				}
 			}
-			result = 1;
+			return result;
+		}
         }
-	return result;
+	return 0;
 }
 /* }}} */
 
@@ -168,7 +167,6 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 			case IS_NULL:
 				return IS_EQUAL;
 			case IS_BOOL:
-				return Z_LVAL_P(op1) == Z_LVAL_P(op2) ? IS_EQUAL : IS_NOT_EQUAL;
 			case IS_LONG:
 				if (Z_LVAL_P(op1) < Z_LVAL_P(op2)) {
 					return IS_SMALLER;
@@ -197,27 +195,11 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 	}
 
 	switch (TYPE_PAIR(Z_TYPE_P(op1), Z_TYPE_P(op2))) {
-		/* long <-> double = (double)long <-> double */
-		case TYPE_PAIR(IS_DOUBLE, IS_LONG):
-			dval = (double)Z_LVAL_P(op2);
-			if (Z_DVAL_P(op1) < dval) {
-				return IS_SMALLER;
-			} else if (Z_DVAL_P(op1) > dval) {
-				return IS_GREATER;
-			} else if (Z_DVAL_P(op1) == dval) {
-				return IS_EQUAL;
-			}
-			return IS_NOT_EQUAL;
-		case TYPE_PAIR(IS_LONG, IS_DOUBLE):
-			dval = (double)Z_LVAL_P(op1);
-			if (dval < Z_DVAL_P(op2)) {
-				return IS_SMALLER;
-			} else if (dval > Z_DVAL_P(op2)) {
-				return IS_GREATER;
-			} else if (dval == Z_DVAL_P(op2)) {
-				return IS_EQUAL;
-			}
-			return IS_NOT_EQUAL;
+                /* null <-> bool = false <-> bool */
+                case TYPE_PAIR(IS_NULL, IS_BOOL):
+                        return Z_LVAL_P(op2) ? IS_SMALLER : IS_EQUAL;
+                case TYPE_PAIR(IS_BOOL, IS_NULL):
+                        return Z_LVAL_P(op1) ? IS_GREATER : IS_EQUAL;
 
 		/* null <-> long = 0 <-> long */
 		case TYPE_PAIR(IS_NULL, IS_LONG):
@@ -255,19 +237,82 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 			}
 			return IS_NOT_EQUAL;
 
-		/* null <-> bool = false <-> bool */
-		case TYPE_PAIR(IS_NULL, IS_BOOL):
-			return Z_LVAL_P(op2) ? IS_SMALLER : IS_EQUAL;
-		case TYPE_PAIR(IS_BOOL, IS_NULL):
-			return Z_LVAL_P(op1) ? IS_GREATER : IS_EQUAL;
-
 		/* null <-> string = "" <-> string */
 		case TYPE_PAIR(IS_NULL, IS_STRING):
 			return 0 < Z_STRLEN_P(op2) ? IS_SMALLER : IS_EQUAL;
 		case TYPE_PAIR(IS_STRING, IS_NULL):
 			return Z_STRLEN_P(op1) > 0 ? IS_GREATER : IS_EQUAL;
 
-		/* string <-> long   = (long)string <-> long */
+		/* null <-> array = false <-> (bool)count(array) */
+		case TYPE_PAIR(IS_NULL, IS_ARRAY):
+			return zend_hash_num_elements(Z_ARRVAL_P(op2)) ? IS_SMALLER : IS_EQUAL;
+		case TYPE_PAIR(IS_ARRAY, IS_NULL):
+			return zend_hash_num_elements(Z_ARRVAL_P(op1)) ? IS_GREATER : IS_EQUAL;
+
+                /* bool <-> long = bool <-> (bool)long */
+                case TYPE_PAIR(IS_BOOL, IS_LONG):
+                case TYPE_PAIR(IS_LONG, IS_BOOL):
+                        if ((Z_LVAL_P(op1) && Z_LVAL_P(op2)) || (!Z_LVAL_P(op1) && !Z_LVAL_P(op2))) {
+                                return IS_EQUAL;
+                        }
+                        return IS_NOT_EQUAL;
+
+                /* bool <-> double = bool <-> (bool)double */
+                case TYPE_PAIR(IS_BOOL, IS_DOUBLE):
+                        if ((Z_LVAL_P(op1) && Z_DVAL_P(op2)) || (!Z_LVAL_P(op1) && !Z_DVAL_P(op2))) {
+                                return IS_EQUAL;
+                        }
+                        return IS_NOT_EQUAL;
+                case TYPE_PAIR(IS_DOUBLE, IS_BOOL):
+                        if ((Z_DVAL_P(op1) && Z_LVAL_P(op2)) || (!Z_DVAL_P(op1) && !Z_LVAL_P(op2))) {
+                                return IS_EQUAL;
+                        }
+                        return IS_NOT_EQUAL;
+
+                /* bool <-> string = bool <-> (bool)strlen(string) */
+                case TYPE_PAIR(IS_BOOL, IS_STRING):
+                        if ((Z_LVAL_P(op1) && Z_STRLEN_P(op2)) || (!Z_LVAL_P(op1) && !Z_STRLEN_P(op2))) {
+                                return IS_EQUAL;
+                        }
+                        return IS_NOT_EQUAL;
+                case TYPE_PAIR(IS_STRING, IS_BOOL):
+                        if ((Z_STRLEN_P(op1) && Z_LVAL_P(op2)) || (!Z_STRLEN_P(op1) && !Z_LVAL_P(op2))) {
+                                return IS_EQUAL;
+                        }
+                        return IS_NOT_EQUAL;
+
+                /* bool <-> array = bool <-> (bool)count(array) */
+                case TYPE_PAIR(IS_BOOL, IS_ARRAY):
+                        lval = zend_hash_num_elements(Z_ARRVAL_P(op2));
+                        return (Z_LVAL_P(op1) && lval) || (!Z_LVAL_P(op1) && !lval) ? IS_EQUAL : IS_NOT_EQUAL;
+                case TYPE_PAIR(IS_ARRAY, IS_BOOL):
+                        lval = zend_hash_num_elements(Z_ARRVAL_P(op1));
+                        return (lval && Z_LVAL_P(op2)) || (!lval && !Z_LVAL_P(op2)) ? IS_EQUAL : IS_NOT_EQUAL;
+
+
+                /* long <-> double = (double)long <-> double */
+                case TYPE_PAIR(IS_DOUBLE, IS_LONG):
+                        dval = (double)Z_LVAL_P(op2);
+                        if (Z_DVAL_P(op1) < dval) {
+                                return IS_SMALLER;
+                        } else if (Z_DVAL_P(op1) > dval) {
+                                return IS_GREATER;
+                        } else if (Z_DVAL_P(op1) == dval) {
+                                return IS_EQUAL;
+                        }
+                        return IS_NOT_EQUAL;
+                case TYPE_PAIR(IS_LONG, IS_DOUBLE):
+                        dval = (double)Z_LVAL_P(op1);
+                        if (dval < Z_DVAL_P(op2)) {
+                                return IS_SMALLER;
+                        } else if (dval > Z_DVAL_P(op2)) {
+                                return IS_GREATER;
+                        } else if (dval == Z_DVAL_P(op2)) {
+                                return IS_EQUAL;
+                        }
+                        return IS_NOT_EQUAL;
+
+		/* long <-> string = long <-> (long)string */
 		case TYPE_PAIR(IS_STRING, IS_LONG):
 			if (strton(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, NULL) == IS_LONG) {
 				if (lval < Z_LVAL_P(op2)) {
@@ -289,7 +334,15 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 			}
 			return IS_NOT_EQUAL;
 
-		/* string <-> double = (double)string <-> double */
+                /* long <-> array = long <-> count(array) */
+                case TYPE_PAIR(IS_LONG, IS_ARRAY):
+                        lval = zend_hash_num_elements(Z_ARRVAL_P(op2));
+                        return Z_LVAL_P(op1) < lval ? IS_SMALLER : (Z_LVAL_P(op1) > lval ? IS_GREATER : IS_EQUAL);
+                case TYPE_PAIR(IS_ARRAY, IS_LONG):
+                        lval = zend_hash_num_elements(Z_ARRVAL_P(op1));
+                        return lval < Z_LVAL_P(op2) ? IS_SMALLER : (lval > Z_LVAL_P(op2) ? IS_GREATER : IS_EQUAL);
+
+		/* double <-> string = double <-> (double)string */
 		case TYPE_PAIR(IS_STRING, IS_DOUBLE):
 			if (strton(Z_STRVAL_P(op1), Z_STRLEN_P(op1), NULL, &dval) == IS_DOUBLE) {
 				if (dval < Z_DVAL_P(op2)) {
@@ -315,45 +368,13 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 			}
 			return isnan(Z_DVAL_P(op1)) ? IS_EQUAL : IS_NOT_EQUAL;
 
-		/* bool <-> long = bool <-> (bool)long */
-		case TYPE_PAIR(IS_BOOL, IS_LONG):
-		case TYPE_PAIR(IS_LONG, IS_BOOL):
-			if ((Z_LVAL_P(op1) && Z_LVAL_P(op2)) || (!Z_LVAL_P(op1) && !Z_LVAL_P(op2))) {
-				return IS_EQUAL;
-			}
-			return IS_NOT_EQUAL;
-
-		/* bool <-> double = bool <-> (bool)double */
-		case TYPE_PAIR(IS_BOOL, IS_DOUBLE):
-			if ((Z_LVAL_P(op1) && Z_DVAL_P(op2)) || (!Z_LVAL_P(op1) && !Z_DVAL_P(op2))) {
-				return IS_EQUAL;
-			}
-			return IS_NOT_EQUAL;
-		case TYPE_PAIR(IS_DOUBLE, IS_BOOL):
-			if ((Z_DVAL_P(op1) && Z_LVAL_P(op2)) || (!Z_DVAL_P(op1) && !Z_LVAL_P(op2))) {
-				return IS_EQUAL;
-			}
-			return IS_NOT_EQUAL;
-
-		/* bool <-> string = bool <-> (bool)string */
-		case TYPE_PAIR(IS_BOOL, IS_STRING):
-			if ((Z_LVAL_P(op1) && Z_STRLEN_P(op2)) || (!Z_LVAL_P(op1) && !Z_STRLEN_P(op2))) {
-				return IS_EQUAL;
-			}
-			return IS_NOT_EQUAL;
-		case TYPE_PAIR(IS_STRING, IS_BOOL):
-			if ((Z_STRLEN_P(op1) && Z_LVAL_P(op2)) || (!Z_STRLEN_P(op1) && !Z_LVAL_P(op2))) {
-				return IS_EQUAL;
-			}
-			return IS_NOT_EQUAL;
-
-		/* bool <-> array = bool <-> (bool)count(array) */
-		case TYPE_PAIR(IS_BOOL, IS_ARRAY):
-			lval = zend_hash_num_elements(Z_ARRVAL_P(op2));
-			return (Z_LVAL_P(op1) && lval) || (!Z_LVAL_P(op1) && !lval) ? IS_EQUAL : IS_NOT_EQUAL;
-		case TYPE_PAIR(IS_ARRAY, IS_BOOL):
-			lval = zend_hash_num_elements(Z_ARRVAL_P(op1));
-			return (lval && Z_LVAL_P(op2)) || (!lval && !Z_LVAL_P(op1)) ? IS_EQUAL : IS_NOT_EQUAL;
+                /* double <-> array = double <-> count(array) */
+                case TYPE_PAIR(IS_DOUBLE, IS_ARRAY):
+                        dval = (double)zend_hash_num_elements(Z_ARRVAL_P(op2));
+                        return Z_DVAL_P(op1) < dval ? IS_SMALLER : (Z_DVAL_P(op1) > dval ? IS_GREATER : IS_EQUAL);
+                case TYPE_PAIR(IS_ARRAY, IS_DOUBLE):
+                        dval = (double)zend_hash_num_elements(Z_ARRVAL_P(op1));
+                        return dval < Z_DVAL_P(op2) ? IS_SMALLER : (dval > Z_DVAL_P(op2) ? IS_GREATER : IS_EQUAL);
 
 		/* object comparison */
 		default:
@@ -468,8 +489,10 @@ ZEND_API int zend_is_identical_zval(zval *op1, zval *op2 TSRMLS_DC)
 		case IS_STRING:
 			return zend_is_identical_str(Z_STRVAL_P(op1), Z_STRLEN_P(op1), Z_STRVAL_P(op2), Z_STRLEN_P(op2));
 		case IS_ARRAY:
-			return (Z_ARRVAL_P(op1) == Z_ARRVAL_P(op2) ||
-				zend_hash_compare(Z_ARRVAL_P(op1), Z_ARRVAL_P(op2), (compare_func_t) hash_is_identical_zval, 1 TSRMLS_CC) == IS_EQUAL);
+			if (Z_ARRVAL_P(op1) == Z_ARRVAL_P(op2)) {
+				return 1;
+			}
+			return zend_hash_compare(Z_ARRVAL_P(op1), Z_ARRVAL_P(op2), (compare_func_t) hash_is_identical_zval, 1 TSRMLS_CC) == IS_EQUAL;
 		case IS_OBJECT:
 			if (Z_OBJ_HT_P(op1) == Z_OBJ_HT_P(op2)) {
 				return (Z_OBJ_HANDLE_P(op1) == Z_OBJ_HANDLE_P(op2));
