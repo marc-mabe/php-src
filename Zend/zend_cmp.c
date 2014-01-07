@@ -32,18 +32,34 @@ static inline zend_uchar strton(const char *str, int length, long *lval, double 
 {
 	errno = 0;
 	int base = 10;
+        int negative = 0;
 	const char *str_start = str;
 	const char *str_end = str_start + length;
 	char *str_stop;
 	long lval_local;
 	double dval_local;
 
-	/* An empty string or a string beginning with a whitespace is not a valid nummber */
-	/* strto* skips beginning whitespaces */
-	/* This is much faster than the isspace() function */
-	if (!length || *str == ' ' || *str == '\t' || *str == '\n' || *str == '\r' || *str == '\v' || *str == '\f') {
+	/* don't allow empty strings */
+	if (!length) {
 		return 0;
 	}
+
+        /* allow sign for all variants */
+        /* strtol/strtod only accepts sign for decimals */
+        if (*str == '+') {
+            length--;
+            if (!length) {
+                return 0;
+            }
+            str++;
+        } else if (*str == '-') {
+            length--;
+            if (!length) {
+                return 0;
+            }
+            str++;
+            negative = 1;
+        }
 
 	/* hex numbers */
 	if (length > 2 && *str == '0' && (str[1] == 'x' || str[1] == 'X')) {
@@ -53,18 +69,25 @@ static inline zend_uchar strton(const char *str, int length, long *lval, double 
 	} else if (length > 1 && *str == '0') {
 		base = 8;
 		str += 1;
-	}
+        }
+
+        /* prevent duplicated sign */
+        /* strtol/strtod skips beginning whitespaces */
+        /* (this is much faster than the isspace() function) */
+        if (*str == '+' || *str == '-' || *str == ' ' || *str == '\t' || *str == '\n' || *str == '\r' || *str == '\v' || *str == '\f') {
+            return 0;
+        }
 
 	/* parse integer numbers */
 	/* TODO: return as double if out of range */
 	lval_local = strtol(str, &str_stop, base);
 	if (!*str_stop && !errno) {
 		if (lval) {
-			*lval = (long)lval_local;
+			*lval = negative ? (long)-lval_local : (long)lval_local;
 			return IS_LONG;
 		}
 		if (dval) {
-			*dval = (double)lval_local;
+			*dval = negative ? -(double)lval_local : (double)lval_local;
 			return IS_DOUBLE;
 		}
 
@@ -74,12 +97,12 @@ static inline zend_uchar strton(const char *str, int length, long *lval, double 
 		dval_local = strtod(str, &str_stop);
 		if (!*str_stop) {
 			if (dval) {
-				*dval = dval_local;
+				*dval = negative ? -dval_local : dval_local;
 				return IS_DOUBLE;
 			}
 			/* if no dval but lval was given - check if it's possible to store as lval */
 			if (lval && dval_local < LONG_MAX && dval_local > LONG_MIN && fmod(dval_local, 1) == 0) {
-				*lval = (long)dval_local;
+				*lval = negative ? -(long)dval_local : (long)dval_local;
 				return IS_LONG;
 			}
 		}

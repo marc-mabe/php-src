@@ -307,6 +307,93 @@ if (assertType('boolean', 'object')) {
     cmp(true, $stdClass1, 0);
 }
 
+if (assertType('integer', 'double')) {
+    echo "\nint/float to int/float:\n";
+    cmp(0, 0, 0);
+    cmp(0, 1, -1);
+
+    cmp(0.0, 0.0, 0);
+    cmp(0.0, 0.1, -1);
+
+    cmp(0, 0.0, 0);
+    cmp(1.0, 1, 0);
+    cmp(1, -0.1, 1);
+    cmp(-1, -0.9, -1);
+
+    cmp(NAN, NAN, 0);
+    cmp(+INF, +INF, 0);
+    cmp(-INF, -INF, 0);
+    cmp(+INF, NAN, false);
+    cmp(-INF, NAN, false);
+    cmp(NAN, 0, false);
+    cmp(NAN, 0.0, false);
+    cmp(+INF, 123.456, 1);
+    cmp(+INF, 123, 1);
+    cmp(-INF, -123.456, -1);
+    cmp(-INF, -123, -1);
+}
+
+if (assertType('integer', 'string') || assertType('double', 'string')) {
+    echo "\nint/float to string (convert string to number - NaN on error):\n";
+    // int empty
+    cmp(0, '0', 0);
+    cmp(0, '0000', 0);
+    cmp(0, '0x00', 0);
+    cmp(0, '', false);
+    cmp(0, '1', -1);
+
+    // int decimal variants
+    cmp(255, '255', 0);
+    cmp(255, '+255', 0);
+    cmp(-255, '255', -1);
+    cmp(-255, '-255', 0);
+    cmp(255, ' 255', false);
+    cmp(255, '255 ', false);
+    cmp(255, '+ 255', false);
+
+    // int hex variants
+    cmp(255, '0xFf', 0);
+    cmp(255, '0Xff', 0);
+    cmp(255, '0x0ff', 0);
+    cmp(255, '+0xff', 0);
+    cmp(-255, '-0xFF', 0);
+
+    // int octal variants
+    cmp(0123, '0123', 0);
+    cmp(0123, '123', -1);
+    cmp(0123, '+0123', 0);
+    cmp(-0123, '-0123', 0);
+
+    // TODO float empty
+    cmp(0, '0', 0);
+    cmp(0, '0000', 0);
+    cmp(0, '0x00', 0);
+    cmp(0, '', false);
+    cmp(0, '1', -1);
+
+    // TODO float decimal variants
+    cmp(255, '255', 0);
+    cmp(255, '+255', 0);
+    cmp(-255, '255', -1);
+    cmp(-255, '-255', 0);
+    cmp(255, ' 255', false);
+    cmp(255, '255 ', false);
+    cmp(255, '+ 255', false);
+
+    // TODO float hex variants
+    cmp(255, '0xFf', 0);
+    cmp(255, '0Xff', 0);
+    cmp(255, '0x0ff', 0);
+    cmp(255, '+0xff', 0);
+    cmp(-255, '-0xFF', 0);
+
+    // TODO float octal variants
+    cmp(0123, '0123', 0);
+    cmp(0123, '123', -1);
+    cmp(0123, '+0123', 0);
+    cmp(-0123, '-0123', 0);
+}
+
 echo "\nString (non-numeric) to string (non-numeric):\n";
 cmp('str', 'str', 0);
 cmp('str ', 'str', 1);
@@ -360,37 +447,13 @@ cmp('123', '123', 0);
 cmp('124', '123', 1);
 cmp('2', '123', 1);
 
-echo "\nFloat:\n";
-cmp(+0, -0, 0);
-cmp(NAN, NAN, 0);
-cmp(+INF, +INF, 0);
-cmp(-INF, -INF, 0);
-cmp(1.1, 1.1000000000000001, 0);
-cmp(1.1, 1.1000000000000002, -1);
-cmp(+INF, -INF, 1);
-cmp(+INF, 1e22, 1);
-cmp(-INF, -1E22, -1);
-cmp('a', NAN, 0);
-cmp('1', NAN, false);
-cmp(1, NAN, false);
-cmp(1.1, NAN, false);
-cmp(INF, NAN, false);
-
-echo "\nInteger to numeric:\n";
-cmp(1, 1.0, 0);
+echo "\nInteger/Float to numeric:\n";
 cmp(1, '1', 0);
 cmp(1, '1.0', 0);
 cmp((PHP_INT_MAX+1), (string)(PHP_INT_MAX+1), 0);
-cmp(1, 2, -1);
-cmp(1, 1.1, -1);
-cmp(-0, +0.0, 0);
-
-echo "\nFloat to numeric:\n";
-cmp(1.1, 1.1, 0);
 cmp(1.0, '1', 0);
 cmp(1.1, '1.1', 0);
 cmp(1.1, '1.1000000000000001', 0);
-cmp(1.1, 2, -1);
 
 echo "\nArray comparison:\n";
 cmp(array(), array(), 0);
