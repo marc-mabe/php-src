@@ -203,9 +203,9 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 
 		/* NULL <-> long = 0 <-> long */
 		case TYPE_PAIR(IS_NULL, IS_LONG):
-                        return Z_LVAL_P(op2) == 0 ? IS_EQUAL : IS_NOT_EQUAL;
+                        return Z_LVAL_P(op2) == 0 ? IS_EQUAL : (Z_LVAL_P(op2) > 0 ? IS_SMALLER : IS_GREATER);
 		case TYPE_PAIR(IS_LONG, IS_NULL):
-			return Z_LVAL_P(op1) == 0 ? IS_EQUAL : IS_NOT_EQUAL;
+			return Z_LVAL_P(op1) == 0 ? IS_EQUAL : (Z_LVAL_P(op1) > 0 ? IS_GREATER : IS_SMALLER);
 
 		/* NULL <-> double = 0 <-> double */
 		case TYPE_PAIR(IS_NULL, IS_DOUBLE):
