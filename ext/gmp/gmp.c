@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2013 The PHP Group                                |
+   | Copyright (c) 1997-2014 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -718,14 +718,14 @@ static int convert_to_gmp(mpz_t gmpnumber, zval *val, int base TSRMLS_DC)
 {
 	switch (Z_TYPE_P(val)) {
 	case IS_LONG:
-	case IS_BOOL:
-	case IS_CONSTANT: {
+	case IS_BOOL: {
 		mpz_set_si(gmpnumber, gmp_get_long(val));
 		return SUCCESS;
 	}
 	case IS_STRING: {
 		char *numstr = Z_STRVAL_P(val);
 		int skip_lead = 0;
+		int ret;
 
 		if (Z_STRLEN_P(val) > 2) {
 			if (numstr[0] == '0') {
@@ -739,10 +739,18 @@ static int convert_to_gmp(mpz_t gmpnumber, zval *val, int base TSRMLS_DC)
 			}
 		}
 
-		return mpz_set_str(gmpnumber, (skip_lead ? &numstr[2] : numstr), base);
+		ret = mpz_set_str(gmpnumber, (skip_lead ? &numstr[2] : numstr), base);
+		if (-1 == ret) {
+			php_error_docref(NULL TSRMLS_CC, E_WARNING,
+				"Unable to convert variable to GMP - string is not an integer");
+			return FAILURE;
+		}
+
+		return SUCCESS;
 	}
 	default:
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Unable to convert variable to GMP - wrong type");
+		php_error_docref(NULL TSRMLS_CC, E_WARNING,
+			"Unable to convert variable to GMP - wrong type");
 		return FAILURE;
 	}
 }
