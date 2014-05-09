@@ -28,13 +28,10 @@
 #include "zend_list.h"
 #include "zend_API.h"
 
-static inline zend_uchar strton(const char *str, int length, long *lval, double *dval)
+static inline zend_uchar string_to_number(const char *str, int length, long *lval, double *dval)
 {
 	errno = 0;
-	int base = 10;
-        int negative = 0;
-	const char *str_start = str;
-	const char *str_end = str_start + length;
+	const char *str_end;
 	char *str_stop;
 	long lval_local;
 	double dval_local;
@@ -44,65 +41,36 @@ static inline zend_uchar strton(const char *str, int length, long *lval, double 
 		return 0;
 	}
 
-        /* allow sign for all variants */
-        /* strtol/strtod only accepts sign for decimals */
-        if (*str == '+') {
-            length--;
-            if (!length) {
-                return 0;
-            }
-            str++;
-        } else if (*str == '-') {
-            length--;
-            if (!length) {
-                return 0;
-            }
-            str++;
-            negative = 1;
-        }
-
-	/* hex numbers */
-	if (length > 2 && *str == '0' && (str[1] == 'x' || str[1] == 'X')) {
-		base = 16;
-		str += 2;
-	/* octal number */
-	} else if (length > 1 && *str == '0') {
-		base = 8;
-		str += 1;
-        }
-
-        /* prevent duplicated sign */
         /* strtol/strtod skips beginning whitespaces */
-        /* (this is much faster than the isspace() function) */
-        if (*str == '+' || *str == '-' || *str == ' ' || *str == '\t' || *str == '\n' || *str == '\r' || *str == '\v' || *str == '\f') {
+        if (isspace(*str)) {
             return 0;
         }
 
 	/* parse integer numbers */
-	/* TODO: return as double if out of range */
-	lval_local = strtol(str, &str_stop, base);
-	if (!*str_stop && !errno) {
+	str_end    = str + length;
+	lval_local = strtol(str, &str_stop, 0);
+	if (!errno && str_end == str_stop) {
 		if (lval) {
-			*lval = negative ? (long)-lval_local : (long)lval_local;
+			*lval = lval_local;
 			return IS_LONG;
 		}
 		if (dval) {
-			*dval = negative ? -(double)lval_local : (double)lval_local;
+			*dval = (double)lval_local;
 			return IS_DOUBLE;
 		}
 
-	/* parse real numbers (requires base of 10) */
-	} else if (base == 10) {
-		str_stop = NULL;
+	/* parse real numbers */
+	} else {
+		str_stop = NULL; // reset from strtol
 		dval_local = strtod(str, &str_stop);
-		if (!*str_stop) {
+		if (str_end == str_stop) {
 			if (dval) {
-				*dval = negative ? -dval_local : dval_local;
+				*dval = dval_local;
 				return IS_DOUBLE;
 			}
 			/* if no dval but lval was given - check if it's possible to store as lval */
 			if (lval && dval_local < LONG_MAX && dval_local > LONG_MIN && fmod(dval_local, 1) == 0) {
-				*lval = negative ? -(long)dval_local : (long)dval_local;
+				*lval = (long)dval_local;
 				return IS_LONG;
 			}
 		}
@@ -327,7 +295,7 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 
 		/* long <-> string = long <-> (long)string */
 		case TYPE_PAIR(IS_STRING, IS_LONG):
-			if (strton(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, NULL) == IS_LONG) {
+			if (string_to_number(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, NULL) == IS_LONG) {
 				if (lval < Z_LVAL_P(op2)) {
 					return IS_SMALLER;
 				} else if (lval > Z_LVAL_P(op2)) {
@@ -337,7 +305,7 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 			}
 			return IS_NOT_EQUAL;
 		case TYPE_PAIR(IS_LONG, IS_STRING):
-			if (strton(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, NULL) == IS_LONG) {
+			if (string_to_number(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, NULL) == IS_LONG) {
 				if (Z_LVAL_P(op1) < lval) {
 					return IS_SMALLER;
 				} else if (Z_LVAL_P(op1) > lval) {
@@ -357,7 +325,7 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 
 		/* double <-> string = double <-> (double)string */
 		case TYPE_PAIR(IS_STRING, IS_DOUBLE):
-			if (strton(Z_STRVAL_P(op1), Z_STRLEN_P(op1), NULL, &dval) == IS_DOUBLE) {
+			if (string_to_number(Z_STRVAL_P(op1), Z_STRLEN_P(op1), NULL, &dval) == IS_DOUBLE) {
 				if (dval < Z_DVAL_P(op2)) {
 					return IS_SMALLER;
 				} else if (dval > Z_DVAL_P(op2)) {
@@ -369,7 +337,7 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 			}
 			return isnan(Z_DVAL_P(op2)) ? IS_EQUAL : IS_NOT_EQUAL;
 		case TYPE_PAIR(IS_DOUBLE, IS_STRING):
-			if (strton(Z_STRVAL_P(op2), Z_STRLEN_P(op2), NULL, &dval) == IS_DOUBLE) {
+			if (string_to_number(Z_STRVAL_P(op2), Z_STRLEN_P(op2), NULL, &dval) == IS_DOUBLE) {
 				if (Z_DVAL_P(op1) < dval) {
 					return IS_SMALLER;
 				} else if (Z_DVAL_P(op1) > dval) {
@@ -457,10 +425,10 @@ ZEND_API int zend_cmp_str(const char *s1, uint len1, const char *s2, uint len2 T
 	}
 
 	retval = memcmp(s1, s2, MIN(len1, len2));
-	if (retval == IS_EQUAL) {
-		return len1 < len2 ? -1 : (len1 > len2 ? IS_GREATER : IS_EQUAL);
+	if (retval == 0) {
+		return len1 < len2 ? IS_SMALLER : (len1 > len2 ? IS_GREATER : IS_EQUAL);
 	}
-	return retval;
+	return retval < 0 ? IS_SMALLER : IS_GREATER;
 }
 /* }}} */
 

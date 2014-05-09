@@ -8,35 +8,37 @@ Comparison operators:
 	greater or equal : >, >=
 
 Comparison rules:
-	- If a===b
-		- true: b===a, a==b, b==a, a<=b, b<=a, a>=b, b>=a
-		- false: a!==b, b!==a, a!=b, b!=a, a<b, b<a, a>b, b>a
+	- If a === b
+		- true: b === a, a == b, b == a, a <= b, b <= a, a >= b, b >= a
+		- false: a !== b, b !== a, a != b, b != a, a < b, b < a, a > b, b > a
 
-	- If a!==b
-		- true: b!==a
-		- false: a===b, b===a
+	- If a !== b
+		- true: b !== a
+		- false: a === b, b === a
 
-	- If a==b
-		- true: b==a, a<=b, b<=a, a>=b, b>=a
-		- false: a!=b, b!=a, a<b, b<a, a>b, b>a
+	- If a == b
+		- true: b == a, a <= b, b <= a, a >= b, b >= a
+		- false: a != b, b != a, a < b, b < a, a > b, b > a
 
-	- If a!=b
-		- true: b!=a, a!==b, b!==a
-		- false: a==b, b==a, a===b, b===a
+	- If a != b
+		- true: b != a, a !== b, b !== a
+		- false: a == b, b == a, a === b, b === a
 
-	- If a<b
-		- true: a<=b, b>a, b>=a, a!==b, b!==a, a!=b, b!=a
-		- false: a>b, a>=b, b<a, b<=a, a===b, b===a, a==b, b==a
+	- If a < b
+		- true: a <= b, b > a, b >= a, a !== b, b !== a, a != b, b != a
+		- false: a > b, a >= b, b < a, b <= a, a === b, b === a, a == b, b == a
 
 Loose type comparison:
 	- null to bool          : handle NULL as the same as FALSE
 	- null to int/float     : handle NULL as the same as 0
 	- null to string        : handle NULL as the same as an empty string
 	- null to array         : handle an empty array as the same as NULL else the array is greater
+
 	- bool to bool		: FALSE is smaller then TRUE
 	- bool to int/float     : handle FALSE as the same as 0 and all other as the same as TRUE
 	- bool to string        : handle an empty string as FALSE and all other as TRUE
 	- bool to array         : handle an empty array as FALSE and all other as TRUE
+
 	- int/float to string   : convert string to int/float
 		- handle an invalid number as the same as NaN
 		- an empty string will be invalid
@@ -49,16 +51,20 @@ Loose type comparison:
 			- allow the decimal separator as the first character after the optional sign
 			- allow "e" and "E" as exponent separator followed by at least one of 0-9
 	- int/float to array	: count the number of array elements to compare to the number
+
 	- string to array       : handle an empty string and an empty array as equal else false
+
 	- array to array	:
 		- compare the length of the arrays
 		- compare all keys and values using loose type comparison
 		- compare all elements in the same order as they are
+
 	- object to x           :
 		- if possible use comparison table of the left object
 		- else if possible use comparison table of the right object
 		- else if possible compare the object to type x
 		  (by default on compare to a bool an object will be handled as the same as TRUE)
+
 	- All other will be the same as strict comparison
 
 On comparing special values of floating point numbers:
@@ -296,7 +302,7 @@ if (assertType('boolean', 'string')) {
 }
 
 if (assertType('boolean', 'resource')) {
-    echo "\nboolean to string (not compatible):\n";
+    echo "\nboolean to resource (not compatible):\n";
     cmp(false, $resource1, false);
     cmp(true, $resource1, false);
 }
@@ -337,6 +343,7 @@ if (assertType('integer', 'string') || assertType('double', 'string')) {
     echo "\nint/float to string (convert string to number - NaN on error):\n";
     // int empty
     cmp(0, '0', 0);
+    cmp(0, '0.0', 0);
     cmp(0, '0000', 0);
     cmp(0, '0x00', 0);
     cmp(0, '', false);
@@ -344,9 +351,11 @@ if (assertType('integer', 'string') || assertType('double', 'string')) {
 
     // int decimal variants
     cmp(255, '255', 0);
+    cmp(255, '255.0', 0);
     cmp(255, '+255', 0);
     cmp(-255, '255', -1);
     cmp(-255, '-255', 0);
+    cmp(255, '254.9999', 1);
     cmp(255, ' 255', false);
     cmp(255, '255 ', false);
     cmp(255, '+ 255', false);
@@ -364,34 +373,38 @@ if (assertType('integer', 'string') || assertType('double', 'string')) {
     cmp(0123, '+0123', 0);
     cmp(-0123, '-0123', 0);
 
-    // TODO float empty
-    cmp(0, '0', 0);
-    cmp(0, '0000', 0);
-    cmp(0, '0x00', 0);
-    cmp(0, '', false);
-    cmp(0, '1', -1);
+    // float empty
+    cmp(0.0, '0', 0);
+    cmp(0.0, '0.0', 0);
+    cmp(0.0, '0000', 0);
+    cmp(0.0, '0x00', 0);
+    cmp(0.0, '', false);
+    cmp(0.0, '1', -1);
 
-    // TODO float decimal variants
-    cmp(255, '255', 0);
-    cmp(255, '+255', 0);
-    cmp(-255, '255', -1);
-    cmp(-255, '-255', 0);
-    cmp(255, ' 255', false);
-    cmp(255, '255 ', false);
-    cmp(255, '+ 255', false);
+    // float decimal variants
+    cmp(255.0, '255', 0);
+    cmp(255.0, '255.0', 0);
+    cmp(255.0, '+255', 0);
+    cmp(-255.0, '255', -1);
+    cmp(-255.0, '-255', 0);
+    cmp(255.5, '255.50', 0);
+    cmp(255.5, '255.1', 1);
+    cmp(255.0, ' 255', false);
+    cmp(255.0, '255 ', false);
+    cmp(255.0, '+ 255', false);
 
-    // TODO float hex variants
-    cmp(255, '0xFf', 0);
-    cmp(255, '0Xff', 0);
-    cmp(255, '0x0ff', 0);
-    cmp(255, '+0xff', 0);
-    cmp(-255, '-0xFF', 0);
+    // float hex variants
+    cmp(255.0, '0xFf', 0);
+    cmp(255.0, '0Xff', 0);
+    cmp(255.0, '0x0ff', 0);
+    cmp(255.0, '+0xff', 0);
+    cmp(-255.0, '-0xFF', 0);
 
-    // TODO float octal variants
-    cmp(0123, '0123', 0);
-    cmp(0123, '123', -1);
-    cmp(0123, '+0123', 0);
-    cmp(-0123, '-0123', 0);
+    // float octal variants
+    cmp(83.0, '0123', 0);
+    cmp(83.0, '123', -1);
+    cmp(83.0, '+0123', 0);
+    cmp(-83.0, '-0123', 0);
 }
 
 echo "\nString (non-numeric) to string (non-numeric):\n";
