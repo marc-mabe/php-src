@@ -52,13 +52,15 @@ static inline char *phpdbg_decode_op(zend_op_array *ops, znode_op *op, zend_uint
 		case IS_VAR:
 		case IS_TMP_VAR: {
 			zend_ulong id = 0, *pid = NULL;
-			if (zend_hash_index_find(vars, (zend_ulong) ops->vars - op->var, (void**) &pid) != SUCCESS) {
-				id = zend_hash_num_elements(vars);
-				zend_hash_index_update(
-					vars, (zend_ulong) ops->vars - op->var,
-					(void**) &id,
-					sizeof(zend_ulong), NULL);
-			} else id = *pid;
+			if (vars != NULL) {
+				if (zend_hash_index_find(vars, (zend_ulong) ops->vars - op->var, (void**) &pid) != SUCCESS) {
+					id = zend_hash_num_elements(vars);
+					zend_hash_index_update(
+						vars, (zend_ulong) ops->vars - op->var,
+						(void**) &id,
+						sizeof(zend_ulong), NULL);
+				} else id = *pid;
+			}
 			asprintf(&decode, "@%lu", id);
 		} break;
 
@@ -181,6 +183,7 @@ void phpdbg_print_opline(zend_execute_data *execute_data, zend_bool ignore_flags
 
 const char *phpdbg_decode_opcode(zend_uchar opcode) /* {{{ */
 {
+#if ZEND_EXTENSION_API_NO <= PHP_5_5_API_NO
 #define CASE(s) case s: return #s
 	switch (opcode) {
 		CASE(ZEND_NOP);
@@ -358,4 +361,8 @@ const char *phpdbg_decode_opcode(zend_uchar opcode) /* {{{ */
 		default:
 			return "UNKNOWN";
 	}
+#else
+	const char *ret = zend_get_opcode_name(opcode);
+	return ret?ret:"UNKNOWN";
+#endif
 } /* }}} */

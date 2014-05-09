@@ -33,11 +33,13 @@
 
 #if ZEND_EXTENSION_API_NO > PHP_5_3_X_API_NO
 # define ADD_INTERNED_STRING(str, len) do { \
-		const char *tmp = accel_new_interned_string((str), (len), !IS_INTERNED((str)) TSRMLS_CC); \
-		if (tmp != (str)) { \
-			(str) = (char*)tmp; \
-		} else { \
-			ADD_DUP_SIZE((str), (len)); \
+		if (!IS_INTERNED(str)) { \
+			const char *tmp = accel_new_interned_string((str), (len), 1 TSRMLS_CC); \
+			if (tmp != (str)) { \
+				(str) = (char*)tmp; \
+			} else { \
+				ADD_DUP_SIZE((str), (len)); \
+			} \
 		} \
 	} while (0)
 #else
@@ -127,7 +129,9 @@ static uint zend_persist_zval_calc(zval *z TSRMLS_DC)
 			ADD_INTERNED_STRING(Z_STRVAL_P(z), Z_STRLEN_P(z) + 1);
 			break;
 		case IS_ARRAY:
+#if ZEND_EXTENSION_API_NO <= PHP_5_5_API_NO
 		case IS_CONSTANT_ARRAY:
+#endif
 			ADD_DUP_SIZE(z->value.ht, sizeof(HashTable));
 			ADD_SIZE(zend_hash_persist_calc(z->value.ht, (int (*)(void* TSRMLS_DC)) zend_persist_zval_ptr_calc, sizeof(zval**) TSRMLS_CC));
 			break;
