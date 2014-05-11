@@ -2053,10 +2053,6 @@ ZEND_API double zend_strtod (CONST char *s00, CONST char **se)
 	sign = nz0 = nz = 0;
 	value(rv) = 0.;
 
-
-	for(s = s00; isspace((unsigned char) *s); s++)
-		;
-
 	if (*s == '-') {
 		sign = 1;
 		s++;

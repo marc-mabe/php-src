@@ -144,14 +144,7 @@ static inline zend_uchar is_numeric_string_ex(const char *str, int length, long 
 		*oflow_info = 0;
 	}
 
-	/* Skip any whitespace
-	 * This is much faster than the isspace() function */
-	while (*str == ' ' || *str == '\t' || *str == '\n' || *str == '\r' || *str == '\v' || *str == '\f') {
-		str++;
-		length--;
-	}
 	ptr = str;
-
 	if (*ptr == '-' || *ptr == '+') {
 		ptr++;
 	}

@@ -149,7 +149,8 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 {
         int ival = 0;
         long lval = 0;
-        double dval = 0;
+        double dval1 = 0;
+	double dval2 = 0;
         zval zend_val;
         zval *op_free;
 
@@ -273,45 +274,66 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 
                 /* long <-> double = (double)long <-> double */
                 case TYPE_PAIR(IS_DOUBLE, IS_LONG):
-                        dval = (double)Z_LVAL_P(op2);
-                        if (Z_DVAL_P(op1) < dval) {
+                        dval2 = (double)Z_LVAL_P(op2);
+                        if (Z_DVAL_P(op1) < dval2) {
                                 return IS_SMALLER;
-                        } else if (Z_DVAL_P(op1) > dval) {
+                        } else if (Z_DVAL_P(op1) > dval2) {
                                 return IS_GREATER;
-                        } else if (Z_DVAL_P(op1) == dval) {
+                        } else if (Z_DVAL_P(op1) == dval2) {
                                 return IS_EQUAL;
                         }
                         return IS_NOT_EQUAL;
                 case TYPE_PAIR(IS_LONG, IS_DOUBLE):
-                        dval = (double)Z_LVAL_P(op1);
-                        if (dval < Z_DVAL_P(op2)) {
+                        dval1 = (double)Z_LVAL_P(op1);
+                        if (dval1 < Z_DVAL_P(op2)) {
                                 return IS_SMALLER;
-                        } else if (dval > Z_DVAL_P(op2)) {
+                        } else if (dval1 > Z_DVAL_P(op2)) {
                                 return IS_GREATER;
-                        } else if (dval == Z_DVAL_P(op2)) {
+                        } else if (dval1 == Z_DVAL_P(op2)) {
                                 return IS_EQUAL;
                         }
                         return IS_NOT_EQUAL;
 
 		/* long <-> string = long <-> (long)string */
 		case TYPE_PAIR(IS_STRING, IS_LONG):
-			if (string_to_number(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, NULL) == IS_LONG) {
-				if (lval < Z_LVAL_P(op2)) {
-					return IS_SMALLER;
-				} else if (lval > Z_LVAL_P(op2)) {
-					return IS_GREATER;
-				}
-				return IS_EQUAL;
+			switch (is_numeric_string(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, &dval1, 0)) {
+				case IS_LONG:
+					if (lval < Z_LVAL_P(op2)) {
+						return IS_SMALLER;
+					} else if (lval > Z_LVAL_P(op2)) {
+						return IS_GREATER;
+					}
+					return IS_EQUAL;
+				case IS_DOUBLE:
+					dval2 = (double)Z_LVAL_P(op2);
+					if (dval1 < dval2) {
+						return IS_SMALLER;
+					} else if (dval1 > dval2) {
+						return IS_GREATER;
+					}
+					// is_numeric_string doesn't generate NAN value
+					return IS_EQUAL;
 			}
 			return IS_NOT_EQUAL;
+
 		case TYPE_PAIR(IS_LONG, IS_STRING):
-			if (string_to_number(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, NULL) == IS_LONG) {
-				if (Z_LVAL_P(op1) < lval) {
-					return IS_SMALLER;
-				} else if (Z_LVAL_P(op1) > lval) {
-					return IS_GREATER;
-				}
-				return IS_EQUAL;
+			switch (is_numeric_string(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, &dval2, 0)) {
+				case IS_LONG:
+					if (Z_LVAL_P(op1) < lval) {
+						return IS_SMALLER;
+					} else if (Z_LVAL_P(op1) > lval) {
+						return IS_GREATER;
+					}
+					return IS_EQUAL;
+				case IS_DOUBLE:
+					dval1 = (double)Z_LVAL_P(op1);
+					if (dval1 < dval2) {
+						return IS_SMALLER;
+					} else if (dval1 > dval2) {
+						return IS_GREATER;
+					}
+					// is_numeric_string doesn't generate NAN value
+					return IS_EQUAL;
 			}
 			return IS_NOT_EQUAL;
 
@@ -325,37 +347,41 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 
 		/* double <-> string = double <-> (double)string */
 		case TYPE_PAIR(IS_STRING, IS_DOUBLE):
-			if (string_to_number(Z_STRVAL_P(op1), Z_STRLEN_P(op1), NULL, &dval) == IS_DOUBLE) {
-				if (dval < Z_DVAL_P(op2)) {
-					return IS_SMALLER;
-				} else if (dval > Z_DVAL_P(op2)) {
-					return IS_GREATER;
-				} else if (EXPECTED(dval == Z_DVAL_P(op2))) {
+			switch (is_numeric_string(Z_STRVAL_P(op1), Z_STRLEN_P(op1), &lval, &dval1, 0)) {
+				case IS_LONG:
+					dval1 = (double)lval;
+				case IS_DOUBLE:
+					if (dval1 < Z_DVAL_P(op2)) {
+						return IS_SMALLER;
+					} else if (dval1 > Z_DVAL_P(op2)) {
+						return IS_GREATER;
+					}
+					// is_numeric_string doesn't generate NAN value
 					return IS_EQUAL;
-				}
-				return IS_NOT_EQUAL;
 			}
-			return isnan(Z_DVAL_P(op2)) ? IS_EQUAL : IS_NOT_EQUAL;
+			return IS_NOT_EQUAL;
 		case TYPE_PAIR(IS_DOUBLE, IS_STRING):
-			if (string_to_number(Z_STRVAL_P(op2), Z_STRLEN_P(op2), NULL, &dval) == IS_DOUBLE) {
-				if (Z_DVAL_P(op1) < dval) {
-					return IS_SMALLER;
-				} else if (Z_DVAL_P(op1) > dval) {
-					return IS_GREATER;
-				} else if (EXPECTED(Z_DVAL_P(op1) == dval)) {
+			switch (is_numeric_string(Z_STRVAL_P(op2), Z_STRLEN_P(op2), &lval, &dval2, 0)) {
+				case IS_LONG:
+					dval2 = (double)lval;
+				case IS_DOUBLE:
+					if (Z_DVAL_P(op1) < dval2) {
+						return IS_SMALLER;
+					} else if (Z_DVAL_P(op1) > dval2) {
+						return IS_GREATER;
+					}
+					// is_numeric_string doesn't generate NAN value
 					return IS_EQUAL;
-				}
-				return IS_NOT_EQUAL;
 			}
-			return isnan(Z_DVAL_P(op1)) ? IS_EQUAL : IS_NOT_EQUAL;
+			return IS_NOT_EQUAL;
 
                 /* double <-> array = double <-> count(array) */
                 case TYPE_PAIR(IS_DOUBLE, IS_ARRAY):
-                        dval = (double)zend_hash_num_elements(Z_ARRVAL_P(op2));
-                        return Z_DVAL_P(op1) < dval ? IS_SMALLER : (Z_DVAL_P(op1) > dval ? IS_GREATER : IS_EQUAL);
+                        dval2 = (double)zend_hash_num_elements(Z_ARRVAL_P(op2));
+                        return Z_DVAL_P(op1) < dval2 ? IS_SMALLER : (Z_DVAL_P(op1) > dval2 ? IS_GREATER : IS_EQUAL);
                 case TYPE_PAIR(IS_ARRAY, IS_DOUBLE):
-                        dval = (double)zend_hash_num_elements(Z_ARRVAL_P(op1));
-                        return dval < Z_DVAL_P(op2) ? IS_SMALLER : (dval > Z_DVAL_P(op2) ? IS_GREATER : IS_EQUAL);
+                        dval1 = (double)zend_hash_num_elements(Z_ARRVAL_P(op1));
+                        return dval1 < Z_DVAL_P(op2) ? IS_SMALLER : (dval1 > Z_DVAL_P(op2) ? IS_GREATER : IS_EQUAL);
 
 		/* object comparison */
 		default:
