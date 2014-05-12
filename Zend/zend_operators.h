@@ -150,9 +150,8 @@ static inline zend_uchar is_numeric_string_ex(const char *str, int length, long 
 	}
 
 	if (ZEND_IS_DIGIT(*ptr)) {
-		/* Handle hex numbers
-		 * str is used instead of ptr to disallow signs and keep old behavior */
-		if (length > 2 && *str == '0' && (str[1] == 'x' || str[1] == 'X')) {
+		/* Handle hex numbers */
+		if (length > 2 && *ptr == '0' && (ptr[1] == 'x' || ptr[1] == 'X')) {
 			base = 16;
 			ptr += 2;
 		}
