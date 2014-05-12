@@ -367,11 +367,13 @@ if (assertType('integer', 'string') || assertType('double', 'string')) {
     cmp(255, '+0xff', 0);
     cmp(-255, '-0xFF', 0);
 
-    // int octal variants
-    cmp(0123, '0123', 0);
+    // int octal variants (no possible)
+    cmp(0123, '0123', -1);
     cmp(0123, '123', -1);
-    cmp(0123, '+0123', 0);
-    cmp(-0123, '-0123', 0);
+    cmp(0123, '+0123', -1);
+    cmp(-0123, '-0123', 1);
+    cmp(0123, '083', 0);
+    cmp(0123, '082', 1);
 
     // float empty
     cmp(0.0, '0', 0);
@@ -400,11 +402,12 @@ if (assertType('integer', 'string') || assertType('double', 'string')) {
     cmp(255.0, '+0xff', 0);
     cmp(-255.0, '-0xFF', 0);
 
-    // float octal variants
-    cmp(83.0, '0123', 0);
-    cmp(83.0, '123', -1);
-    cmp(83.0, '+0123', 0);
-    cmp(-83.0, '-0123', 0);
+    // float octal variants (not possible)
+    cmp(83.0, '0123', -1);
+    cmp(83.0, '+0123', -1);
+    cmp(-83.0, '-0123', 1);
+    cmp(83.0, '083', 0);
+    cmp(83.0, '082', 1);
 }
 
 echo "\nString (non-numeric) to string (non-numeric):\n";
