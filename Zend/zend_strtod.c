@@ -2053,6 +2053,7 @@ ZEND_API double zend_strtod (CONST char *s00, CONST char **se)
 	sign = nz0 = nz = 0;
 	value(rv) = 0.;
 
+	s = s00;
 	if (*s == '-') {
 		sign = 1;
 		s++;
