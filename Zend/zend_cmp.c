@@ -178,9 +178,9 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 				}
 				return IS_NOT_EQUAL;
 			case IS_STRING:
-				return zend_cmp_str(Z_STRVAL_P(op1), Z_STRLEN_P(op1), Z_STRVAL_P(op2), Z_STRLEN_P(op2));
+				return zend_cmp_str(Z_STRVAL_P(op1), Z_STRLEN_P(op1), Z_STRVAL_P(op2), Z_STRLEN_P(op2) TSRMLS_CC);
 			case IS_ARRAY:
-				return zend_cmp_ht(Z_ARRVAL_P(op1), Z_ARRVAL_P(op2));
+				return zend_cmp_ht(Z_ARRVAL_P(op1), Z_ARRVAL_P(op2) TSRMLS_CC);
 			case IS_RESOURCE:
 				return Z_RESVAL_P(op1) == Z_RESVAL_P(op2) ? IS_EQUAL : IS_NOT_EQUAL;
 		}
@@ -494,7 +494,7 @@ ZEND_API int zend_is_identical_zval(zval *op1, zval *op2 TSRMLS_DC)
 		case IS_DOUBLE:
 			return Z_DVAL_P(op1) == Z_DVAL_P(op2) ? 1 : 0;
 		case IS_STRING:
-			return zend_is_identical_str(Z_STRVAL_P(op1), Z_STRLEN_P(op1), Z_STRVAL_P(op2), Z_STRLEN_P(op2));
+			return zend_is_identical_str(Z_STRVAL_P(op1), Z_STRLEN_P(op1), Z_STRVAL_P(op2), Z_STRLEN_P(op2) TSRMLS_CC);
 		case IS_ARRAY:
 			if (Z_ARRVAL_P(op1) == Z_ARRVAL_P(op2)) {
 				return 1;
@@ -547,13 +547,13 @@ ZEND_API int zend_is_equal_zval(zval *op1, zval *op2 TSRMLS_DC)
 /* }}} */
 ZEND_API int zend_is_smaller_zval(zval *op1, zval *op2 TSRMLS_DC)
 {
-	return zend_cmp_zval(op1, op2) == IS_SMALLER;
+	return zend_cmp_zval(op1, op2 TSRMLS_CC) == IS_SMALLER;
 }
 /* }}} */
 
 /* }}} */
 ZEND_API int zend_is_smaller_or_equal_zval(zval *op1, zval *op2 TSRMLS_DC)
 {
-        return zend_cmp_zval(op1, op2) <= IS_EQUAL;
+        return zend_cmp_zval(op1, op2 TSRMLS_CC) <= IS_EQUAL;
 }
 /* }}} */
