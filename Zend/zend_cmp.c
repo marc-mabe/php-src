@@ -355,9 +355,9 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 						return IS_SMALLER;
 					} else if (dval1 > Z_DVAL_P(op2)) {
 						return IS_GREATER;
+					} else if (dval1 == Z_DVAL_P(op2)) {
+						return IS_EQUAL;
 					}
-					// is_numeric_string doesn't generate NAN value
-					return IS_EQUAL;
 			}
 			return IS_NOT_EQUAL;
 		case TYPE_PAIR(IS_DOUBLE, IS_STRING):
@@ -369,9 +369,9 @@ ZEND_API int zend_cmp_zval(zval *op1, zval *op2 TSRMLS_DC)
 						return IS_SMALLER;
 					} else if (Z_DVAL_P(op1) > dval2) {
 						return IS_GREATER;
+					} else if (Z_DVAL_P(op1) == dval2) {
+						return IS_EQUAL;
 					}
-					// is_numeric_string doesn't generate NAN value
-					return IS_EQUAL;
 			}
 			return IS_NOT_EQUAL;
 

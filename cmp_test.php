@@ -1,5 +1,7 @@
 <?php
 
+ini_set('precision', '32');
+
 echo <<<RULES
 Comparison operators:
 	identical        : ===, !==
@@ -340,7 +342,7 @@ if (assertType('integer', 'double')) {
 }
 
 if (assertType('integer', 'string') || assertType('double', 'string')) {
-    echo "\nint/float to string (convert string to number - NaN on error):\n";
+    echo "\nint/float to string (NaN = not compatible):\n";
     // int empty
     cmp(0, '0', 0);
     cmp(0, '0.0', 0);
@@ -408,6 +410,10 @@ if (assertType('integer', 'string') || assertType('double', 'string')) {
     cmp(-83.0, '-0123', 1);
     cmp(83.0, '083', 0);
     cmp(83.0, '082', 1);
+
+    // NaN
+    cmp(NAN, 'php', false);
+    cmp(NAN, '123', false);
 }
 
 echo "\nString (non-numeric) to string (non-numeric):\n";
@@ -466,7 +472,7 @@ cmp('2', '123', 1);
 echo "\nInteger/Float to numeric:\n";
 cmp(1, '1', 0);
 cmp(1, '1.0', 0);
-cmp((PHP_INT_MAX+1), (string)(PHP_INT_MAX+1), 0);
+cmp(1234567890123456789.0, '1234567890123456789', 0);
 cmp(1.0, '1', 0);
 cmp(1.1, '1.1', 0);
 cmp(1.1, '1.1000000000000001', 0);
