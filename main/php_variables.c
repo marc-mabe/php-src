@@ -665,6 +665,17 @@ PHPAPI int php_hash_environment(TSRMLS_D)
 }
 /* }}} */
 
+static zend_bool php_auto_globals_create_globals(zend_string *name TSRMLS_DC)
+{
+        zval globals;
+
+        ZVAL_ARR(&globals, &EG(symbol_table));
+        ZVAL_NEW_REF(&globals, &globals);
+        zend_hash_update(&EG(symbol_table).ht, name, &globals);
+
+        return 0; /* don't rearm */
+}
+
 static zend_bool php_auto_globals_create_get(zend_string *name TSRMLS_DC)
 {
 	if (PG(variables_order) && (strchr(PG(variables_order),'G') || strchr(PG(variables_order),'g'))) {
@@ -818,6 +829,7 @@ static zend_bool php_auto_globals_create_request(zend_string *name TSRMLS_DC)
 
 void php_startup_auto_globals(TSRMLS_D)
 {
+	zend_register_auto_global(zend_string_init("_GLOBALS", sizeof("_GLOBALS")-1, 1), 1, php_auto_globals_create_globals TSRMLS_CC);
 	zend_register_auto_global(zend_string_init("_GET", sizeof("_GET")-1, 1), 0, php_auto_globals_create_get TSRMLS_CC);
 	zend_register_auto_global(zend_string_init("_POST", sizeof("_POST")-1, 1), 0, php_auto_globals_create_post TSRMLS_CC);
 	zend_register_auto_global(zend_string_init("_COOKIE", sizeof("_COOKIE")-1, 1), 0, php_auto_globals_create_cookie TSRMLS_CC);

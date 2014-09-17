@@ -2867,7 +2867,7 @@ zend_bool zend_is_auto_global(zend_string *name TSRMLS_DC) /* {{{ */
 {
 	zend_auto_global *auto_global;
 
-	if ((auto_global = zend_hash_find_ptr(CG(auto_globals), name)) != NULL) {
+	if (name->val[0] == '_' && (auto_global = zend_hash_find_ptr(CG(auto_globals), name)) != NULL) {
 		if (auto_global->armed) {
 			auto_global->armed = auto_global->auto_global_callback(auto_global->name TSRMLS_CC);
 		}
@@ -2881,6 +2881,11 @@ int zend_register_auto_global(zend_string *name, zend_bool jit, zend_auto_global
 {
 	zend_auto_global auto_global;
 	int retval;
+
+	if (name->val[0] != '_') {
+		zend_error(E_CORE_ERROR, "Auto global '%s' have to be prefixed with an underline", name->val);
+		return 0;
+	}
 
 	auto_global.name = zend_new_interned_string(name TSRMLS_CC);
 	auto_global.auto_global_callback = auto_global_callback;

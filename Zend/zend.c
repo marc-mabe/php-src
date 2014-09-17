@@ -631,17 +631,6 @@ static void auto_global_dtor(zval *zv) /* {{{ */
 }
 /* }}} */
 
-static zend_bool php_auto_globals_create_globals(zend_string *name TSRMLS_DC) /* {{{ */
-{
-	zval globals;
-
-	ZVAL_ARR(&globals, &EG(symbol_table));
-	ZVAL_NEW_REF(&globals, &globals);
-	zend_hash_update(&EG(symbol_table).ht, name, &globals);
-	return 0;
-}
-/* }}} */
-
 int zend_startup(zend_utility_functions *utility_functions, char **extensions TSRMLS_DC) /* {{{ */
 {
 #ifdef ZTS
@@ -750,7 +739,6 @@ int zend_startup(zend_utility_functions *utility_functions, char **extensions TS
 	zend_interned_strings_init(TSRMLS_C);
 	zend_startup_builtin_functions(TSRMLS_C);
 	zend_register_standard_constants(TSRMLS_C);
-	zend_register_auto_global(zend_string_init("GLOBALS", sizeof("GLOBALS") - 1, 1), 1, php_auto_globals_create_globals TSRMLS_CC);
 
 #ifndef ZTS
 	zend_init_rsrc_plist(TSRMLS_C);
