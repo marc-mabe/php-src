@@ -3681,28 +3681,66 @@ PHP_METHOD(DateTimeImmutable, setISODate)
 }
 /* }}} */
 
-static void php_date_timestamp_set(zval *object, zend_long timestamp, zval *return_value) /* {{{ */
+static bool php_date_timestamp_set(php_date_obj *dateobj, zval *timestamp) /* {{{ */
 {
-	php_date_obj *dateobj;
+	double sec_dval;
+	zend_long sec;
+	int usec = 0;
 
-	dateobj = Z_PHPDATE_P(object);
-	DATE_CHECK_INITIALIZED(dateobj->time, Z_OBJCE_P(object));
-	timelib_unixtime2local(dateobj->time, (timelib_sll)timestamp);
+	switch (Z_TYPE_P(timestamp)) {
+		case IS_LONG:
+			sec = Z_LVAL_P(timestamp);
+			break;
+
+		case IS_DOUBLE:
+			sec_dval = trunc(Z_DVAL_P(timestamp));
+			if (UNEXPECTED(isnan(sec_dval)
+				|| sec_dval >= (double)TIMELIB_LONG_MAX
+				|| sec_dval < (double)TIMELIB_LONG_MIN
+			)) {
+				zend_throw_error(date_ce_date_range_error,
+								"Seconds must be a finite number between "TIMELIB_LONG_FMT" and "TIMELIB_LONG_FMT", %g given",
+								TIMELIB_LONG_MIN, TIMELIB_LONG_MAX, sec_dval);
+				return false;
+			}
+
+			sec = (zend_long)sec_dval;
+			usec = (int)(fmod(Z_DVAL_P(timestamp), 1) * 1000000);
+
+			if (UNEXPECTED(usec < 0)) {
+				sec = sec - 1;
+				usec = 1000000 + usec;
+			}
+
+			break;
+
+		EMPTY_SWITCH_DEFAULT_CASE();
+	}
+
+	timelib_unixtime2local(dateobj->time, (timelib_sll)sec);
 	timelib_update_ts(dateobj->time, NULL);
-	php_date_set_time_fraction(dateobj->time, 0);
-} /* }}} */
+	php_date_set_time_fraction(dateobj->time, usec);
+
+	return true;
+}
 
 /* {{{ Sets the date and time based on an Unix timestamp. */
 PHP_FUNCTION(date_timestamp_set)
 {
 	zval *object;
-	zend_long  timestamp;
+	zval *value;
+	php_date_obj *dateobj;
 
-	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "Ol", &object, date_ce_date, &timestamp) == FAILURE) {
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "On", &object, date_ce_date, &value) == FAILURE) {
 		RETURN_THROWS();
 	}
 
-	php_date_timestamp_set(object, timestamp, return_value);
+	dateobj = Z_PHPDATE_P(object);
+	DATE_CHECK_INITIALIZED(dateobj->time, Z_OBJCE_P(object));
+
+	if (!php_date_timestamp_set(dateobj, value)) {
+		RETURN_THROWS();
+	}
 
 	RETURN_OBJ_COPY(Z_OBJ_P(object));
 }
@@ -3712,15 +3750,24 @@ PHP_FUNCTION(date_timestamp_set)
 PHP_METHOD(DateTimeImmutable, setTimestamp)
 {
 	zval *object, new_object;
-	zend_long  timestamp;
+	zval *value;
+	php_date_obj *dateobj, *new_dateobj;
 
 	object = ZEND_THIS;
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "l", &timestamp) == FAILURE) {
-		RETURN_THROWS();
-	}
+	ZEND_PARSE_PARAMETERS_START(1, 1)
+		Z_PARAM_NUMBER(value)
+	ZEND_PARSE_PARAMETERS_END();
+
+	dateobj = Z_PHPDATE_P(object);
+	DATE_CHECK_INITIALIZED(dateobj->time, Z_OBJCE_P(object));
 
 	date_clone_immutable(object, &new_object);
-	php_date_timestamp_set(&new_object, timestamp, return_value);
+	new_dateobj = Z_PHPDATE_P(&new_object);
+
+	if (!php_date_timestamp_set(new_dateobj, value)) {
+		zval_ptr_dtor(&new_object);
+		RETURN_THROWS();
+	}
 
 	RETURN_OBJ(Z_OBJ(new_object));
 }

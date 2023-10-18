@@ -431,7 +431,7 @@ class DateTime implements DateTimeInterface
      * @tentative-return-type
      * @alias date_timestamp_set
      */
-    public function setTimestamp(int $timestamp): DateTime {}
+    public function setTimestamp(int|float $timestamp): DateTime {}
 
     /**
      * @tentative-return-type
@@ -525,7 +525,7 @@ class DateTimeImmutable implements DateTimeInterface
     public function setISODate(int $year, int $week, int $dayOfWeek = 1): DateTimeImmutable {}
 
     /** @tentative-return-type */
-    public function setTimestamp(int $timestamp): DateTimeImmutable {}
+    public function setTimestamp(int|float $timestamp): DateTimeImmutable {}
 
     /** @tentative-return-type */
     public static function createFromMutable(DateTime $object): static {}
