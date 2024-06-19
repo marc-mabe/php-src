@@ -993,6 +993,42 @@ timelib_long timelib_parse_zone(const char **ptr, int *dst, timelib_time *t, int
 	return retval;
 }
 
+timelib_long timelib_parse_time_offset(const char **ptr, int allow_z, timelib_time *t, int *not_found)
+{
+	timelib_long retval = 0;
+
+	*not_found = 0;
+
+	if ((*ptr)[0] == 'G' && (*ptr)[1] == 'M' && (*ptr)[2] == 'T' && ((*ptr)[3] == '+' || (*ptr)[3] == '-')) {
+		*ptr += 3;
+	}
+
+	if (**ptr == '+') {
+		++*ptr;
+		t->is_localtime = 1;
+		t->zone_type = TIMELIB_ZONETYPE_OFFSET;
+		t->dst = 0;
+
+		retval = timelib_parse_tz_cor(ptr, not_found);
+	} else if (**ptr == '-') {
+		++*ptr;
+		t->is_localtime = 1;
+		t->zone_type = TIMELIB_ZONETYPE_OFFSET;
+		t->dst = 0;
+
+		retval = -1 * timelib_parse_tz_cor(ptr, not_found);
+	} else if (allow_z && (**ptr == 'Z' || **ptr == 'z')) {
+		++*ptr;
+		t->is_localtime = 1;
+		t->zone_type = TIMELIB_ZONETYPE_OFFSET;
+		t->dst = 0;
+	} else {
+		*not_found = 1;
+	}
+
+	return retval;
+}
+
 #define timelib_split_free(arg) {       \
 	int i;                         \
 	for (i = 0; i < arg.c; i++) {  \
@@ -2146,10 +2182,10 @@ static const timelib_format_specifier default_format_map[] = {
 	{'M', TIMELIB_FORMAT_TEXTUAL_MONTH_3_LETTER},
 	{'F', TIMELIB_FORMAT_TEXTUAL_MONTH_FULL},
 	{'e', TIMELIB_FORMAT_TIMEZONE_OFFSET},
-	{'P', TIMELIB_FORMAT_TIMEZONE_OFFSET},
-	{'p', TIMELIB_FORMAT_TIMEZONE_OFFSET},
+	{'P', TIMELIB_FORMAT_TIME_OFFSET},
+	{'p', TIMELIB_FORMAT_TIME_OFFSET_Z},
 	{'T', TIMELIB_FORMAT_TIMEZONE_OFFSET},
-	{'O', TIMELIB_FORMAT_TIMEZONE_OFFSET},
+	{'O', TIMELIB_FORMAT_TIME_OFFSET},
 	{' ', TIMELIB_FORMAT_WHITESPACE},
 	{'y', TIMELIB_FORMAT_YEAR_TWO_DIGIT},
 	{'Y', TIMELIB_FORMAT_YEAR_FOUR_DIGIT},
@@ -2329,7 +2365,7 @@ timelib_time *timelib_parse_from_format_with_map(const char *format, const char 
 						add_pbf_error(s, TIMELIB_ERR_NO_TWO_DIGIT_YEAR, "A two digit year could not be found", string, begin);
 						break;
 					}
-					
+
 					s->time->have_date = 1;
 					TIMELIB_PROCESS_YEAR(s->time->y, length);
 				}
@@ -2448,7 +2484,7 @@ timelib_time *timelib_parse_from_format_with_map(const char *format, const char 
 						add_pbf_error(s, TIMELIB_ERR_NO_THREE_DIGIT_MILLISECOND, "A three digit millisecond could not be found", string, begin);
 						break;
 					}
-					
+
 					s->time->us = (f * pow(10, 3 - (ptr - tptr)) * 1000);
 				}
 				break;
@@ -2472,7 +2508,7 @@ timelib_time *timelib_parse_from_format_with_map(const char *format, const char 
 					add_pbf_error(s, TIMELIB_ERR_NO_SEP_SYMBOL, "The separation symbol ([;:/.,-]) could not be found", string, begin);
 					break;
 				}
-				
+
 				++ptr;
 				break;
 
@@ -2550,6 +2586,32 @@ timelib_time *timelib_parse_from_format_with_map(const char *format, const char 
 				}
 
 				s->time->have_date = 1;
+				break;
+			case TIMELIB_FORMAT_TIME_OFFSET: /* time offset */
+				{
+					int not_found;
+
+					s->time->z = timelib_parse_time_offset(&ptr, 0, s->time, &not_found);
+					if (not_found) {
+						add_pbf_error(s, TIMELIB_ERR_TZID_NOT_FOUND, "The time offset could not be parsed", string, begin);
+						break;
+					}
+
+					s->time->have_zone = 1;
+				}
+				break;
+			case TIMELIB_FORMAT_TIME_OFFSET_Z: /* time offset allow Z */
+				{
+					int not_found;
+
+					s->time->z = timelib_parse_time_offset(&ptr, 1, s->time, &not_found);
+					if (not_found) {
+						add_pbf_error(s, TIMELIB_ERR_TZID_NOT_FOUND, "The time offset could not be parsed", string, begin);
+						break;
+					}
+
+					s->time->have_zone = 1;
+				}
 				break;
 			case TIMELIB_FORMAT_TIMEZONE_OFFSET: /* timezone */
 				{
